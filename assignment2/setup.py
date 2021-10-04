@@ -95,6 +95,11 @@ class dbProgram:
         # USER
         self.insert_data()
 
+    def file_len(self, file):
+        with open(file) as f:
+            for i, l in enumerate(f):
+                pass
+        return i + 1
 
 
 def main():
