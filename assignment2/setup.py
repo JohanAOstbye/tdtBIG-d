@@ -164,8 +164,6 @@ class dbProgram:
                     self.insert_activities(user_id, activity_id, root, activity_trackpoints)          
                     activity_id += 1
         
-        print(self.activities[0])
-        print(self.trackpoints[0])
         self.insert_data(
             "Activity",
             self.activities
@@ -200,7 +198,7 @@ def main():
     #     print("ERROR: Failed to use database:", e)
     finally:
         if program:
-            program.drop_tables()
+            # program.drop_tables()
             program.connection.close_connection()
 
 
