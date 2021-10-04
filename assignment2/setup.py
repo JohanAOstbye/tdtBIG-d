@@ -21,7 +21,8 @@ class dbProgram:
         for row in table_data:
             # Take note that the name is wrapped in '' --> '%s' because it is a string,
             # while an int would be %s etc
-            query = "INSERT INTO %s VALUES ('%s')"
+            query = "INSERT INTO %s VALUES (%s)"
+            print(query % (table_name, row))
             self.cursor.execute(query % (table_name, row))
         self.db_connection.commit()
 
@@ -91,9 +92,31 @@ class dbProgram:
         self.drop_table("Activity")
         self.drop_table("User")
 
-    def insert_dataset(self):
+    def insert_users(self):
         # USER
-        self.insert_data()
+        labeled_users = []
+        with open("dataset/labeled_ids.txt") as file:
+            for user in file:
+                user = user[:-1] 
+                labeled_users.append(user) #storing everything in memory!
+        
+        query_data = []
+
+        for num in range(182):
+            user = ("%03d" % (num,))
+            has_label = "0"
+            if user in labeled_users:
+                has_label = "1"
+            query_data.append("'" + user + "', " + has_label)
+            
+
+        self.insert_data(
+            "User",
+            query_data
+        )
+
+
+
 
     def file_len(self, file):
         with open(file) as f:
@@ -108,16 +131,16 @@ def main():
         program = dbProgram()
         
         program.create_tables()
-        program.insert_dataset()
+        program.insert_users()
         # program.show_table("User")
-        # program.show_table("Activity")
+        program.show_table("Activity")
         # program.show_table("TrackPoint")
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
     finally:
         if program:
-            program.drop_tables
+            program.drop_tables()
             program.connection.close_connection()
 
 
