@@ -19,12 +19,12 @@ class dbProgram:
         self.cursor.execute(query % (table_name, table_fields))
         self.db_connection.commit()
 
-    def insert_data(self, table_name, table_data):
+    def insert_data(self, table_name, table_data, table_columns = ""):
         # inserts rows of data
         print("Inserting into %s" % table_name)
         for row in tqdm(table_data):
-            query = "INSERT INTO %s VALUES (%s)"
-            self.cursor.execute(query % (table_name, row))
+            query = "INSERT INTO %s%s VALUES (%s)"
+            self.cursor.execute(query % (table_name, (" (" + table_columns + ")"), row))
         self.db_connection.commit()
 
     # def fetch_data(self, table_name):
@@ -145,16 +145,16 @@ class dbProgram:
                             lat = trackpoint.split(",")[0]
                             lon = trackpoint.split(",")[1]
                             altitude = trackpoint.split(",")[3]
-                            date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6]
-                            trackpoint = "%s, %s, %s, %s, %s" % (activity_id, lat, lon, altitude, date_time)
+                            date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6][:-1]
+                            trackpoint = "%s, %s, %s, %s, '%s'" % (activity_id, lat, lon, altitude, date_time)
                             activity_trackpoints.append(trackpoint)
                     
                     trackpoints.extend(activity_trackpoints)
 
                     #Activity                    
                     transportation_mode = "NULL"
-                    start_time = activity_trackpoints[0].split(",")[4][1:-1]
-                    end_time = activity_trackpoints[-1].split(",")[4][1:-1]
+                    start_time = activity_trackpoints[0].split(",")[4]
+                    end_time = activity_trackpoints[-1].split(",")[4]
                     if user_id in self.labeled_users: # root is user with labels
                         with open(root[:-10] + "labels.txt") as file:
                             next(file)
@@ -165,18 +165,20 @@ class dbProgram:
                                     transportation_mode = label.split()[4]
                                 
 
-                    activity = "%s, '%s', '%s', %s, %s" % (activity_id, user_id, transportation_mode, start_time, end_time)
+                    activity = "%s, '%s', '%s',%s,%s" % (activity_id, user_id, transportation_mode, start_time, end_time)
                     activity_id += 1
                     activities.append(activity)
         
         print(activities[0])
+        print(trackpoints[0])
         self.insert_data(
             "Activity",
             activities
         )
         self.insert_data(
             "Trackpoint",
-            trackpoints
+            trackpoints,
+            "activity_id, lat, lon, altitude, date_time"
         )
 
     def file_len(self, file):
