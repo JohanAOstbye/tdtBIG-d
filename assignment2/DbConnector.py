@@ -20,6 +20,12 @@ class DbConnector:
                  USER="dDd",
                  PASSWORD="bigD123"):
         # Connect to the database
+
+        # for local use
+                # HOST="localhost",
+                #  DATABASE="test_db",
+                #  USER="dDd",
+                #  PASSWORD="bigD123lol123"):
         try:
             self.db_connection = mysql.connect(host=HOST, database=DATABASE, user=USER, password=PASSWORD, port=3306)
         except Exception as e:

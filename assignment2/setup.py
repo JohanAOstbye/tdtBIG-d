@@ -19,13 +19,39 @@ class dbProgram:
         self.cursor.execute(query % (table_name, table_fields))
         self.db_connection.commit()
 
+
+    # def format_query(self, row, table_name, table_columns):
+    #     return (table_name, (" (" + table_columns + ")"), row)
+
+
     def insert_data(self, table_name, table_data, table_columns = ""):
         # inserts rows of data
+
+        # Assembly of query
+        query = "INSERT INTO %s %s VALUES (" % (table_name, table_columns)
+        for c in table_data[0]:
+            query += "%s, "
+        query = query[:-2] + ")"
+
+        # Yield successive n-sized
+        # chunks from l.
+        def divide_chunks(l, n):
+            
+            # looping till length l
+            for i in range(0, len(l), n): 
+                yield l[i:i + n]
+        
+        # How many elements each
+        # list should have
+        n = 100000
+        
+        data_list = list(divide_chunks(table_data, n))
+
         print("Inserting into %s" % table_name)
-        for row in tqdm(table_data):
-            query = "INSERT INTO %s%s VALUES (%s)"
-            self.cursor.execute(query % (table_name, (" (" + table_columns + ")"), row))
-        self.db_connection.commit()
+        for data in tqdm(data_list):
+            self.cursor.executemany(query, data)
+            self.db_connection.commit()
+        print("Insert done")
 
     # def fetch_data(self, table_name):
     #     query = "SELECT * FROM %s"
@@ -63,7 +89,7 @@ class dbProgram:
             "User",
             """
             id VARCHAR(3) PRIMARY KEY,
-            has_labels BIT(1)
+            has_labels INT(1)
             """
         )
         self.create_table(
@@ -110,7 +136,7 @@ class dbProgram:
             has_label = "0"
             if user in self.labeled_users:
                 has_label = "1"
-            query_data.append("'" + user + "', " + has_label)
+            query_data.append((user , has_label))
             
 
         self.insert_data(
@@ -122,7 +148,8 @@ class dbProgram:
         activity_id = 0
         activities = []
         trackpoints = []
-
+        
+        print("Getting activities and trackpoints")
         for (root,dirs,files) in tqdm(os.walk("dataset/Data")):
             if root ==  "Data": # skips first iteration
                 continue
@@ -146,15 +173,15 @@ class dbProgram:
                             lon = trackpoint.split(",")[1]
                             altitude = trackpoint.split(",")[3]
                             date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6][:-1]
-                            trackpoint = "%s, %s, %s, %s, '%s'" % (activity_id, lat, lon, altitude, date_time)
+                            trackpoint = (activity_id, lat, lon, altitude, date_time)
                             activity_trackpoints.append(trackpoint)
                     
                     trackpoints.extend(activity_trackpoints)
 
                     #Activity                    
                     transportation_mode = "NULL"
-                    start_time = activity_trackpoints[0].split(",")[4]
-                    end_time = activity_trackpoints[-1].split(",")[4]
+                    start_time = activity_trackpoints[0][4]
+                    end_time = activity_trackpoints[-1][4]
                     if user_id in self.labeled_users: # root is user with labels
                         with open(root[:-10] + "labels.txt") as file:
                             next(file)
@@ -165,10 +192,11 @@ class dbProgram:
                                     transportation_mode = label.split()[4]
                                 
 
-                    activity = "%s, '%s', '%s',%s,%s" % (activity_id, user_id, transportation_mode, start_time, end_time)
+                    activity = (activity_id, user_id, transportation_mode, start_time, end_time)
+                    
                     activity_id += 1
                     activities.append(activity)
-        
+        print("done")
         print(activities[0])
         print(trackpoints[0])
         self.insert_data(
@@ -178,7 +206,7 @@ class dbProgram:
         self.insert_data(
             "Trackpoint",
             trackpoints,
-            "activity_id, lat, lon, altitude, date_time"
+            "(activity_id, lat, lon, altitude, date_time) "
         )
 
     def file_len(self, file):
@@ -211,5 +239,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-#YYYY-MM-DD HH:MM:SS
