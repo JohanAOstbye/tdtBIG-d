@@ -1,5 +1,7 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
+import os
+from tqdm import tqdm
 
 class dbProgram:
     
@@ -18,11 +20,10 @@ class dbProgram:
         self.db_connection.commit()
 
     def insert_data(self, table_name, table_data):
-        for row in table_data:
-            # Take note that the name is wrapped in '' --> '%s' because it is a string,
-            # while an int would be %s etc
+        # inserts rows of data
+        print("Inserting into %s" % table_name)
+        for row in tqdm(table_data):
             query = "INSERT INTO %s VALUES (%s)"
-            print(query % (table_name, row))
             self.cursor.execute(query % (table_name, row))
         self.db_connection.commit()
 
@@ -43,11 +44,13 @@ class dbProgram:
         self.cursor.execute(query % table_name)
 
     def show_tables(self):
+        #shows all tablenames
         self.cursor.execute("SHOW TABLES")
         rows = self.cursor.fetchall()
         print(tabulate(rows, headers=self.cursor.column_names))
     
     def show_table(self, table_name):
+        #shows a table with values
         print("Table %s" % table_name)
         query = "SELECT * FROM %s"
         self.cursor.execute(query % table_name)
@@ -55,6 +58,7 @@ class dbProgram:
         print(tabulate(rows, headers=self.cursor.column_names))
 
     def create_tables(self):
+        #sets up database
         self.create_table(
             "User",
             """
@@ -65,7 +69,7 @@ class dbProgram:
         self.create_table(
             "Activity",
             """
-            id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+            id INT NOT NULL PRIMARY KEY,
             user_id VARCHAR(3),
             transportation_mode CHAR(10),
             start_date_time DATETIME,
@@ -74,38 +78,37 @@ class dbProgram:
             """
         )
         self.create_table(
-            "TrackPoint",
+            "Trackpoint",
             """
             id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
             activity_id INT,
             lat DOUBLE,
             lon DOUBLE,
             altitude INT,
-            date_days DOUBLE,
             date_time DATETIME,
             FOREIGN KEY (activity_id) REFERENCES Activity(id)
             """
         )
     
     def drop_tables(self):
-        self.drop_table("TrackPoint")
+        #flushes db
+        self.drop_table("Trackpoint")
         self.drop_table("Activity")
         self.drop_table("User")
 
     def insert_users(self):
-        # USER
-        labeled_users = []
+        self.labeled_users = [] #list of user with labels on their activities
         with open("dataset/labeled_ids.txt") as file:
             for user in file:
-                user = user[:-1] 
-                labeled_users.append(user) #storing everything in memory!
+                user = user[:-1] #remove /n
+                self.labeled_users.append(user) #storing everything in memory!
         
         query_data = []
 
-        for num in range(182):
+        for num in range(182): # formates users into querydata
             user = ("%03d" % (num,))
             has_label = "0"
-            if user in labeled_users:
+            if user in self.labeled_users:
                 has_label = "1"
             query_data.append("'" + user + "', " + has_label)
             
@@ -115,8 +118,66 @@ class dbProgram:
             query_data
         )
 
+    def insert_activities_and_trackpoints(self):
+        activity_id = 0
+        activities = []
+        trackpoints = []
 
+        for (root,dirs,files) in tqdm(os.walk("dataset/Data")):
+            if root ==  "Data": # skips first iteration
+                continue
 
+            if "Trajectory" in root:
+                user_id = root.split("/")[2] # sets the user id depending on folder
+
+                for activity_file in files:
+                    activity_file_url = root + "/" + activity_file
+                    if(self.file_len(activity_file_url) >= 2506): # if activity has more than 2500 trackpoints -> skip
+                        continue
+
+                    # Trackpoints
+                    activity_trackpoints = []
+                    with open(activity_file_url) as activity:
+                        for x in range(6):
+                            next(activity) # skips the first 6 lines of the .plt file
+
+                        for trackpoint in activity:
+                            lat = trackpoint.split(",")[0]
+                            lon = trackpoint.split(",")[1]
+                            altitude = trackpoint.split(",")[3]
+                            date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6]
+                            trackpoint = "%s, %s, %s, %s, %s" % (activity_id, lat, lon, altitude, date_time)
+                            activity_trackpoints.append(trackpoint)
+                    
+                    trackpoints.extend(activity_trackpoints)
+
+                    #Activity                    
+                    transportation_mode = "NULL"
+                    start_time = activity_trackpoints[0].split(",")[4][1:-1]
+                    end_time = activity_trackpoints[-1].split(",")[4][1:-1]
+                    if user_id in self.labeled_users: # root is user with labels
+                        with open(root[:-10] + "labels.txt") as file:
+                            next(file)
+                            for label in file:
+                                label_start = label.split()[0].replace("/", "-") + " " + label.split()[1]
+                                label_end = label.split()[2].replace("/", "-") + " " + label.split()[3]
+                                if label_start == start_time and label_end == end_time:
+                                    transportation_mode = label.split()[4]
+                                
+
+                    activity = "%s, '%s', '%s', %s, %s" % (activity_id, user_id, transportation_mode, start_time, end_time)
+                    activity_id += 1
+                    activities.append(activity)
+        
+        print(activities[0])
+        self.insert_data(
+            "Activity",
+            activities
+        )
+        self.insert_data(
+            "Trackpoint",
+            trackpoints
+        )
 
     def file_len(self, file):
         with open(file) as f:
@@ -132,12 +193,14 @@ def main():
         
         program.create_tables()
         program.insert_users()
-        # program.show_table("User")
-        program.show_table("Activity")
-        # program.show_table("TrackPoint")
 
-    except Exception as e:
-        print("ERROR: Failed to use database:", e)
+        program.insert_activities_and_trackpoints()
+        # program.show_table("User")
+        # program.show_table("Activity")
+        # program.show_table("Trackpoint")
+
+    # except Exception as e:
+    #     print("ERROR: Failed to use database:", e)
     finally:
         if program:
             program.drop_tables()
