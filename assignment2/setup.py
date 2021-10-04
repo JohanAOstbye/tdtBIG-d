@@ -53,19 +53,15 @@ class dbProgram:
         rows = self.cursor.fetchall()
         print(tabulate(rows, headers=self.cursor.column_names))
 
-
-def main():
-    program = None
-    try:
-        program = dbProgram()
-        program.create_table(
+    def create_tables(self):
+        self.create_table(
             "User",
             """
             id VARCHAR(3) PRIMARY KEY,
             has_labels BIT(1)
             """
         )
-        program.create_table(
+        self.create_table(
             "Activity",
             """
             id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
@@ -76,7 +72,7 @@ def main():
             FOREIGN KEY (user_id) REFERENCES User(id)
             """
         )
-        program.create_table(
+        self.create_table(
             "TrackPoint",
             """
             id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
@@ -89,19 +85,38 @@ def main():
             FOREIGN KEY (activity_id) REFERENCES Activity(id)
             """
         )
-        program.show_table("User")
-        program.show_table("Activity")
-        program.show_table("TrackPoint")
+    
+    def drop_tables(self):
+        self.drop_table("TrackPoint")
+        self.drop_table("Activity")
+        self.drop_table("User")
+
+    def insert_dataset(self):
+        # USER
+        self.insert_data()
+
+
+
+def main():
+    program = None
+    try:
+        program = dbProgram()
+        
+        program.create_tables()
+        program.insert_dataset()
+        # program.show_table("User")
+        # program.show_table("Activity")
+        # program.show_table("TrackPoint")
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
     finally:
         if program:
-            program.drop_table("TrackPoint")
-            program.drop_table("Activity")
-            program.drop_table("User")
+            program.drop_tables
             program.connection.close_connection()
 
 
 if __name__ == '__main__':
     main()
+
+#YYYY-MM-DD HH:MM:SS
