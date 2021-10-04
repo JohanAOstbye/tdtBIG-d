@@ -53,6 +53,11 @@ class dbProgram:
         rows = self.cursor.fetchall()
         print(tabulate(rows, headers=self.cursor.column_names))
 
+    def file_len(self, file):
+        with open(file) as f:
+            for i, l in enumerate(f):
+                pass
+        return i + 1
 
 def main():
     program = None
