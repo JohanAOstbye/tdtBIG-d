@@ -19,13 +19,39 @@ class dbProgram:
         self.cursor.execute(query % (table_name, table_fields))
         self.db_connection.commit()
 
+
+    # def format_query(self, row, table_name, table_columns):
+    #     return (table_name, (" (" + table_columns + ")"), row)
+
+
     def insert_data(self, table_name, table_data, table_columns = ""):
         # inserts rows of data
+
+        # Assembly of query
+        query = "INSERT INTO %s %s VALUES (" % (table_name, table_columns)
+        for c in table_data[0]:
+            query += "%s, "
+        query = query[:-2] + ")"
+
+        # Yield successive n-sized
+        # chunks from l.
+        def divide_chunks(l, n):
+            
+            # looping till length l
+            for i in range(0, len(l), n): 
+                yield l[i:i + n]
+        
+        # How many elements each
+        # list should have
+        n = 100000
+        
+        data_list = list(divide_chunks(table_data, n))
+
         print("Inserting into %s" % table_name)
-        for row in tqdm(table_data):
-            query = "INSERT INTO %s%s VALUES (%s)"
-            self.cursor.execute(query % (table_name, (" (" + table_columns + ")"), row))
-        self.db_connection.commit()
+        for data in tqdm(data_list):
+            self.cursor.executemany(query, data)
+            self.db_connection.commit()
+        print("Insert done")
 
     def drop_table(self, table_name):
         print("Dropping table %s..." % table_name)
@@ -52,7 +78,7 @@ class dbProgram:
             "User",
             """
             id VARCHAR(3) PRIMARY KEY,
-            has_labels BIT(1)
+            has_labels INT(1)
             """
         )
         self.create_table(
@@ -99,7 +125,7 @@ class dbProgram:
             has_label = "0"
             if user in self.labeled_users:
                 has_label = "1"
-            query_data.append("'" + user + "', " + has_label)
+            query_data.append((user , has_label))
             
 
         self.insert_data(
@@ -204,5 +230,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-#YYYY-MM-DD HH:MM:SS
