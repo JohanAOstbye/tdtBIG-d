@@ -18,6 +18,10 @@ class Queries:
             6: self.task6,
             7: self.task7,
             8: self.task8,
+            9: self.task9,
+            10: self.task10,
+            11: self.task11,
+            12: self.task12,
         }
     
     def fetch_data(self, query, table_name):
@@ -82,12 +86,10 @@ class Queries:
         query = """
             SELECT COUNT(*) as NumberOfActivities, user_id
             FROM Activity
-
             GROUP BY (user_id)
-
             SELECT AVG(NumberOfActivities), MAX(NumberOfActivities), Min(NumberOfActivities);
             """
-        self.fetch_data(query, "Activities")
+        self.fetch_data(query, "Activity")
 
     def task3(self):
         query = """
@@ -96,7 +98,7 @@ class Queries:
             ORDER BY COUNT(NumberOfActivities) DESC
             LIMIT 10;
             """
-        self.fetch_data(query, "Activities")
+        self.fetch_data(query, "Activity")
 
     def task4(self):
         query = """
@@ -107,7 +109,7 @@ class Queries:
             FROM Activities
             GROUP BY user_id
             """
-        self.fetch_data(query, "Activities")
+        self.fetch_data(query, "Activity")
 
     def task5(self):
         query = """
@@ -116,7 +118,7 @@ class Queries:
             GROUP BY user_id, transportation_mode, start_date_time, end_date_time
             HAVING COUNT(*)>1; 
             """
-        self.fetch_data(query, "Activities")
+        self.fetch_data(query, "Activity")
 
     def task6(self):
         query = """
@@ -126,11 +128,57 @@ class Queries:
 
     def task7(self):
         query = """
+        SELECT COUNT(id)
+        FROM User
+        WHERE id NOT IN (SELECT DISTINCT user_id as id FROM Activity WHERE transportation_mode = 'taxi')
+        """
+        self.fetch_data(query,"Activity")
+
+    def task8(self):
+        query = """
+        SELECT transportation_mode,
+            COUNT(*) AS 'ant'
+        FROM Activity
+        WHERE transportation_mode != 'NULL'
+        GROUP BY transportation_mode
+        """
+        self.fetch_data(query,"Activity")
+
+    def task9(self):
+        # a)
+        query = """
+        SELECT EXTRACT(month FROM start_date_time) "Month", EXTRACT(year FROM start_date_time) "Year", count(*) AS 'ant'
+        FROM Activity
+        GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
+        ORDER BY ant DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        """
+        # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
+        # ORDER BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        self.fetch_data(query,"Activity")
+
+        query = """
+        SELECT EXTRACT(month FROM start_date_time) "Month", EXTRACT(year FROM start_date_time) "Year", count(*) AS 'ant'
+        FROM Activity
+        GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
+        ORDER BY ant DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        """
+        # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
+        # ORDER BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        self.fetch_data(query,"Activity")
+
+    def task10(self):
+        query = """
         
         """
         print(query)
 
-    def task8(self):
+    def task11(self):
+        query = """
+        
+        """
+        print(query)
+
+    def task12(self):
         query = """
         
         """
@@ -149,10 +197,10 @@ def main():
 
         task = "start"
 
-        while(task != "exit"):
+        while(True):
             task = input("Run task: ")
 
-            if(task == "exit"):
+            if(task == "exit" or task == ""):
                 break
 
 
