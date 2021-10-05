@@ -194,9 +194,7 @@ class dbProgram:
                     #Activity          
                     self.insert_activities(user_id, activity_id, root, activity_trackpoints)          
                     activity_id += 1
-        print("done")
-        print(self.activities[0])
-        print(self.trackpoints[0])
+        
         self.insert_data(
             "Activity",
             self.activities
