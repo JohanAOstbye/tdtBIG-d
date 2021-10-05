@@ -78,7 +78,7 @@ class dbProgram:
             "User",
             """
             id VARCHAR(3) PRIMARY KEY,
-            has_labels INT(1)
+            has_labels BIT(1)
             """
         )
         self.create_table(
@@ -122,9 +122,9 @@ class dbProgram:
 
         for num in range(182): # formates users into querydata
             user = ("%03d" % (num,))
-            has_label = "0"
+            has_label = 0
             if user in self.labeled_users:
-                has_label = "1"
+                has_label = 1
             query_data.append((user , has_label))
             
 
@@ -144,7 +144,7 @@ class dbProgram:
                 lon = trackpoint.split(",")[1]
                 altitude = trackpoint.split(",")[3]
                 date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6][:-1]
-                trackpoint = "%s, %s, %s, %s, '%s'" % (activity_id, lat, lon, altitude, date_time)
+                trackpoint = (activity_id, lat, lon, altitude, date_time)
                 activity_trackpoints.append(trackpoint)
 
         self.trackpoints.extend(activity_trackpoints)
@@ -152,8 +152,8 @@ class dbProgram:
 
     def insert_activities(self, user_id, activity_id, root, activity_trackpoints):
         transportation_mode = "NULL"
-        start_time = activity_trackpoints[0].split(",")[4]
-        end_time = activity_trackpoints[-1].split(",")[4]
+        start_time = activity_trackpoints[0][4]
+        end_time = activity_trackpoints[-1][4]
         if user_id in self.labeled_users: # root is user with labels
             with open(root[:-10] + "labels.txt") as file:
                 next(file)
@@ -162,11 +162,16 @@ class dbProgram:
                     label_end = label.split()[2].replace("/", "-") + " " + label.split()[3]
                     if label_start == start_time and label_end == end_time:
                         transportation_mode = label.split()[4]
+                    
 
-        activity = "%s, '%s', '%s',%s,%s" % (activity_id, user_id, transportation_mode, start_time, end_time)
+        activity = (activity_id, user_id, transportation_mode, start_time, end_time)
+        
+        activity_id += 1
         self.activities.append(activity)
 
-    def insert_activities_and_trackpoints(self):
+    def insert_all_data(self):
+        self.insert_users
+
         activity_id = 0
         self.activities = []
         self.trackpoints = []
@@ -189,7 +194,7 @@ class dbProgram:
                     #Activity          
                     self.insert_activities(user_id, activity_id, root, activity_trackpoints)          
                     activity_id += 1
-        
+        print("done")
         print(self.activities[0])
         print(self.trackpoints[0])
         self.insert_data(
@@ -199,7 +204,7 @@ class dbProgram:
         self.insert_data(
             "Trackpoint",
             self.trackpoints,
-            "activity_id, lat, lon, altitude, date_time"
+            "(activity_id, lat, lon, altitude, date_time) "
         )
 
     def file_len(self, file):
@@ -217,7 +222,7 @@ def main():
         program.create_tables()
         program.insert_users()
 
-        program.insert_activities_and_trackpoints()
+        program.insert_all_data()
         # program.show_table("User")
         # program.show_table("Activity")
         # program.show_table("Trackpoint")
@@ -226,7 +231,7 @@ def main():
     #     print("ERROR: Failed to use database:", e)
     finally:
         if program:
-            program.drop_tables()
+            # program.drop_tables()
             program.connection.close_connection()
 
 
