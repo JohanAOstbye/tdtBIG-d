@@ -9,6 +9,24 @@ class Queries:
         self.connection = DbConnector()
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
+        self.query_tasks = {
+            1: self.task1,
+            2: self.task2,
+            3: self.task3,
+            4: self.task4,
+            5: self.task5,
+            6: self.task6,
+            7: self.task7,
+            8: self.task8,
+        }
+    
+    def fetch_data(self, query, table_name):
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print("Data from table %s, tabulated:" % table_name)
+        print(tabulate(rows, headers=self.cursor.column_names))
+        return rows
 
     # the space [x,y,z] where the plane [x,y] is [latitude,longitude], and z is altitude.
     def calculateDistance3D(x1, x2, y1, y2, z1, z2):
@@ -41,37 +59,44 @@ class Queries:
         return dateTime.split()[0]
 
     def task1(self):
-        query = """
+        query_user = """
             SELECT COUNT(*) as "Number of Users"
-            FROM Users;
-
-            SELECT COUNT(*) as "Number of Activities"
-            FROM Activities;
-
-            SELECT COUNT(*) as "Number of Trackpoints"
-            FROM Trackpoints;
+            FROM User;
             """
-        print(query)
+            
+        query_activity = """
+            SELECT COUNT(*) as "Number of Activities"
+            FROM Activity;
+            """
+
+        query_trackpoint = """
+            SELECT COUNT(*) as "Number of Trackpoints"
+            FROM Trackpoint;
+            """
+        self.fetch_data(query_user,"User")
+        self.fetch_data(query_activity,"Activity")
+        self.fetch_data(query_trackpoint,"Trackpoint")
+
 
     def task2(self):
         query = """
             SELECT COUNT(*) as NumberOfActivities, user_id
-            FROM Activities
+            FROM Activity
 
             GROUP BY (user_id)
 
             SELECT AVG(NumberOfActivities), MAX(NumberOfActivities), Min(NumberOfActivities);
             """
-        print(query)
+        self.fetch_data(query, "Activities")
 
     def task3(self):
         query = """
             SELECT COUNT(NumberOfActivities), user_id 
-            FROM Activities
+            FROM Activity
             ORDER BY COUNT(NumberOfActivities) DESC
             LIMIT 10;
             """
-        print(query)
+        self.fetch_data(query, "Activities")
 
     def task4(self):
         query = """
@@ -82,7 +107,7 @@ class Queries:
             FROM Activities
             GROUP BY user_id
             """
-        print(query)
+        self.fetch_data(query, "Activities")
 
     def task5(self):
         query = """
@@ -91,7 +116,7 @@ class Queries:
             GROUP BY user_id, transportation_mode, start_date_time, end_date_time
             HAVING COUNT(*)>1; 
             """
-        print(query)
+        self.fetch_data(query, "Activities")
 
     def task6(self):
         query = """
@@ -111,17 +136,32 @@ class Queries:
         """
         print(query)
 
-    def execute_query(self, task):
-        tasks = {
-            1: self.task1
-        }
-        tasks[task]()
+    def tasks(self):
+        return self.query_tasks
+        
 
 
 def main():
     program = None
     try:
         program = Queries()
+        tasks = Queries.tasks(program)
+
+        task = "start"
+
+        while(task != "exit"):
+            task = input("Run task: ")
+
+            if(task == "exit"):
+                break
+
+
+            if (int(task) in tasks):
+                tasks[int(task)]()
+            else:
+                print("task %s not valid: " % task)
+
+            
 
     # except Exception as e:
     #     print("ERROR: Failed to use database:", e)
