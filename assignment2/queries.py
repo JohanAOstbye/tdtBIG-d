@@ -1,8 +1,14 @@
-import setup
+from DbConnector import DbConnector
+from tabulate import tabulate
 import math
 
 
 class Queries:
+
+    def __init__(self):
+        self.connection = DbConnector()
+        self.db_connection = self.connection.db_connection
+        self.cursor = self.connection.cursor
 
     # the space [x,y,z] where the plane [x,y] is [latitude,longitude], and z is altitude.
     def calculateDistance3D(x1, x2, y1, y2, z1, z2):
@@ -36,52 +42,55 @@ class Queries:
 
     def task1(self):
         query = """
-        SELECT COUNT(*) as "Number of Users"
-        FROM Users;
+            SELECT COUNT(*) as "Number of Users"
+            FROM Users;
 
-        SELECT COUNT(*) as "Number of Activities"
-        FROM Activities;
+            SELECT COUNT(*) as "Number of Activities"
+            FROM Activities;
 
-        SELECT COUNT(*) as "Number of Trackpoints"
-        FROM Trackpoints;
-        """
+            SELECT COUNT(*) as "Number of Trackpoints"
+            FROM Trackpoints;
+            """
         print(query)
 
     def task2(self):
         query = """
-        SELECT COUNT(*) as NumberOfActivities, user_id
-        FROM Activities
+            SELECT COUNT(*) as NumberOfActivities, user_id
+            FROM Activities
 
-        GROUP BY (user_id)
+            GROUP BY (user_id)
 
-        SELECT AVG(NumberOfActivities), MAX(NumberOfActivities), Min(NumberOfActivities);
-        """
+            SELECT AVG(NumberOfActivities), MAX(NumberOfActivities), Min(NumberOfActivities);
+            """
         print(query)
 
     def task3(self):
         query = """
-        SELECT COUNT(NumberOfActivities), user_id 
-        FROM Activities
-        ORDER BY COUNT(NumberOfActivities) DESC
-        LIMIT 10;
-        """
+            SELECT COUNT(NumberOfActivities), user_id 
+            FROM Activities
+            ORDER BY COUNT(NumberOfActivities) DESC
+            LIMIT 10;
+            """
         print(query)
 
     def task4(self):
         query = """
-        SELECT user_id, 
-        dateFromDateTime(start_date_Time) as start_date, 
-        dateFromDateTime(end_date_Time) as end_date
-        COUNT(IF(start_date != end_date))
-        FROM Activities
-        GROUP BY user_id
-        """
+            SELECT user_id, 
+            dateFromDateTime(start_date_Time) as start_date, 
+            dateFromDateTime(end_date_Time) as end_date
+            COUNT(IF(start_date != end_date))
+            FROM Activities
+            GROUP BY user_id
+            """
         print(query)
 
     def task5(self):
         query = """
-        
-        """
+            SELECT user_id, transportation_mode, start_date_time, end_date_time, COUNT(*)
+            FROM Activity
+            GROUP BY user_id, transportation_mode, start_date_time, end_date_time
+            HAVING COUNT(*)>1; 
+            """
         print(query)
 
     def task6(self):
@@ -112,7 +121,7 @@ class Queries:
 def main():
     program = None
     try:
-        program = setup.dbProgram()
+        program = Queries()
 
     # except Exception as e:
     #     print("ERROR: Failed to use database:", e)
