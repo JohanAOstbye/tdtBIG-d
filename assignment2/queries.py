@@ -47,7 +47,7 @@ def calculateDistance3D(x1,x2,y1,y2,z1,z2): # the space [x,y,z] where the plane 
 def isCloseInDistance(lat1, lat2, long1, long2, alt1, alt2):
   return calculateDistance3D(lat1, lat2, long1, long2, alt1, alt2) <= 100
 
-def calculateTime(datetime1, datetime2):
+def calculateTimeBetween(datetime1, datetime2):
   date1 = datetime1.split()[0]
   date2 = datetime2.split()[0]
   if date2 != date1:
@@ -62,9 +62,8 @@ def calculateTime(datetime1, datetime2):
   return seconds2 - seconds1
 
 def isCloseInTime(t1, t2):
-  return calculateTime(t2, t1) <= 60
+  return calculateTimeBetween(t2, t1) <= 60
 '''
-
 SELECT 
 
 '''
