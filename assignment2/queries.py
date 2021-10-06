@@ -24,22 +24,23 @@ class Queries:
             12: self.task12,
         }
     
-    def fetch_data(self, query, table_name):
+    def fetch_data(self, query, table_name, print_bool=True):
         self.cursor.execute(query)
         rows = self.cursor.fetchall()
-        # Using tabulate to show the table in a nice way
-        print("Data from table %s, tabulated:" % table_name)
-        print(tabulate(rows, headers=self.cursor.column_names))
+        if(print_bool):
+            # Using tabulate to show the table in a nice way
+            print("Data from table %s, tabulated:" % table_name)
+            print(tabulate(rows, headers=self.cursor.column_names))
         return rows
 
-    # the space [x,y,z] where the plane [x,y] is [latitude,longitude], and z is altitude.
-    def calculateDistance3D(x1, x2, y1, y2, z1, z2):
-        return math.sqrt(math.pow(x2 - x1) + math.pow(y2 - y1) + math.pow(z2 - z1))
+    # the space [lat,lon,alt] where the plane [lat,lon] is [latitude,longitude], and alt is altitude.
+    def calculateDistance3D(self, lat1, lat2, lon1, lon2, alt1, alt2):
+        return math.sqrt(math.pow((lat2 - lat1),2) + math.pow((lon2 - lon1),2) + math.pow((alt2 - alt1),2))
 
-    def isCloseInDistance(self, lat1, lat2, long1, long2, alt1, alt2):
-        return self.calculateDistance3D(lat1, lat2, long1, long2, alt1, alt2) <= 100
+    def isCloseInDistance(self, lat1, lat2, lon1, lon2, alt1, alt2):
+        return self.calculateDistance3D(lat1, lat2, lon1, lon2, alt1, alt2) <= 100
 
-    def calculateTime(datetime1, datetime2):
+    def calculateTime(self, datetime1, datetime2):
         date1 = datetime1.split()[0]
         date2 = datetime2.split()[0]
         if date2 != date1:
@@ -156,11 +157,13 @@ class Queries:
         # ORDER BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
         self.fetch_data(query,"Activity")
 
+        # b)
         query = """
-        SELECT EXTRACT(month FROM start_date_time) "Month", EXTRACT(year FROM start_date_time) "Year", count(*) AS 'ant'
+        SELECT user_id, count(*) AS 'ant'
         FROM Activity
-        GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
-        ORDER BY ant DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        WHERE EXTRACT(month FROM start_date_time) = 11 AND EXTRACT(year FROM start_date_time) = 2008
+        GROUP BY user_id
+        ORDER BY ant DESC, user_id;
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
         # ORDER BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
@@ -168,9 +171,30 @@ class Queries:
 
     def task10(self):
         query = """
-        
+        SELECT Activity.id, Trackpoint.lat, Trackpoint.lon, Trackpoint.altitude
+        FROM Trackpoint
+        INNER JOIN Activity ON Trackpoint.activity_id=Activity.id
+        WHERE EXTRACT(year FROM start_date_time) = 2008 AND user_id = 112
         """
-        print(query)
+        rows = self.fetch_data(query,"Tracpoint and Activity", False)
+
+        distance = 0
+        last_trackpoint = rows[0]
+        activity_id = 0
+
+        for trackpoint in rows:
+            if (trackpoint[0] != activity_id):
+                activity_id = trackpoint[0]
+                last_trackpoint = trackpoint
+                continue
+            
+            if(trackpoint == last_trackpoint):
+                continue #skips when the user didnt move and the first pos
+
+            distance += self.calculateDistance3D(last_trackpoint[1], trackpoint[1], last_trackpoint[2], trackpoint[2], last_trackpoint[3], trackpoint[3])
+        
+        distance = distance / 1000
+        print("Total distance: " + f'{distance:.1f}' + "km")
 
     def task11(self):
         query = """
