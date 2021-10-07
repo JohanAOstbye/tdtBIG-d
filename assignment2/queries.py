@@ -86,30 +86,32 @@ class Queries:
 
     def task2(self):
         query = """
-            SELECT COUNT(*) as NumberOfActivities, user_id
-            FROM Activity
-            GROUP BY (user_id)
-            SELECT AVG(NumberOfActivities), MAX(NumberOfActivities), Min(NumberOfActivities);
+            SELECT MAX(NumberOfActivities) AS maximum, MIN(NumberOfActivities) AS minimum, AVG(NumberOfActivities) AS average
+            FROM (SELECT COUNT(*) as NumberOfActivities, user_id
+                FROM Activity
+                GROUP BY user_id) AS num
             """
         self.fetch_data(query, "Activity")
 
     def task3(self):
         query = """
-            SELECT COUNT(NumberOfActivities), user_id 
-            FROM Activity
-            ORDER BY COUNT(NumberOfActivities) DESC
+            SELECT user_id, NumberOfActivities
+            FROM (SELECT COUNT(*) as NumberOfActivities, user_id
+                FROM Activity
+                GROUP BY user_id) AS num
+            ORDER BY NumberOfActivities DESC
             LIMIT 10;
             """
         self.fetch_data(query, "Activity")
 
     def task4(self):
         query = """
-            SELECT user_id, 
-            dateFromDateTime(start_date_Time) as start_date, 
-            dateFromDateTime(end_date_Time) as end_date
-            COUNT(IF(start_date != end_date))
-            FROM Activities
-            GROUP BY user_id
+            SELECT COUNT(*) AS amount
+            FROM (SELECT user_id, COUNT(*)
+                FROM (SELECT user_id, DATE(start_date_time) as start_date, DATE(end_date_time) as end_date
+                    FROM Activity) AS dating
+                WHERE start_date != end_date
+                GROUP BY user_id) AS why
             """
         self.fetch_data(query, "Activity")
 
@@ -181,7 +183,7 @@ class Queries:
     def task8(self):
         query = """
         SELECT transportation_mode,
-            COUNT(*) AS 'ant'
+            COUNT(*) AS 'amount'
         FROM Activity
         WHERE transportation_mode != 'NULL'
         GROUP BY transportation_mode
@@ -191,10 +193,10 @@ class Queries:
     def task9(self):
         # a)
         query = """
-        SELECT EXTRACT(month FROM start_date_time) "Month", EXTRACT(year FROM start_date_time) "Year", count(*) AS 'ant'
+        SELECT EXTRACT(month FROM start_date_time) "Month", EXTRACT(year FROM start_date_time) "Year", count(*) AS 'amount'
         FROM Activity
         GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
-        ORDER BY ant DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        ORDER BY amount DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
         LIMIT 1
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
@@ -203,11 +205,11 @@ class Queries:
 
         # b)
         query = """
-        SELECT user_id, count(*) AS 'ant'
+        SELECT user_id, count(*) AS 'amount'
         FROM Activity
         WHERE EXTRACT(month FROM start_date_time) = 11 AND EXTRACT(year FROM start_date_time) = 2008
         GROUP BY user_id
-        ORDER BY ant DESC, user_id;
+        ORDER BY amount DESC, user_id;
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
         # ORDER BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
