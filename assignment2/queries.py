@@ -1,6 +1,8 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
 import math
+from operator import itemgetter
+from tqdm import tqdm
 
 
 class Queries:
@@ -197,10 +199,42 @@ class Queries:
         print("Total distance: " + f'{distance:.1f}' + "km")
 
     def task11(self):
+        # query = """
+        # SELECT Activity.user_id, Trackpoint.activity_id, Trackpoint.altitude
+        # FROM Activity, Trackpoint
+        # WHERE Trackpoint.altitude != -777
+        # ORDER BY Activity.user_id
+        # """
         query = """
-        
+        SELECT Activity.user_id as user_id, total_meters_gained 
+        FROM Activity, FROM (
+            SELECT Trackpoint.altitude
+            FROM Trackpoint
+            
+        )
+        ORDER BY user_id
         """
-        print(query)
+        # print(query)
+        rows = self.fetch_data(query, "Activity AND Trackpoint", False)
+        # prev_altitude = 0
+        # altitudes = {}
+        # for row in tqdm(rows):
+        #     user_id = row[0]
+        #     activity_id = row[1]
+        #     if prev_altitude == 0:
+        #         prev_altitude = row[2], activity_id
+        #     altitude = row[2], activity_id
+
+        #     if altitude[0] > prev_altitude[0]:
+        #         if altitude[1] == prev_altitude[1]:
+        #             altitudes[user_id] += altitude[0] - prev_altitude[0]
+
+        #     prev_altitude = row[2], activity_id
+
+        # # dict(sorted(altitudes.items(), key=lambda item: item[1]))
+        # res = dict(sorted(altitudes.items(), key = itemgetter(1), reverse = True)[:20])
+        # print(tabulate(res, ["user_id", "total_meters_gained"]))
+            
 
     def task12(self):
         query = """
