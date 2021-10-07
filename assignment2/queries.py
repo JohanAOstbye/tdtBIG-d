@@ -31,7 +31,7 @@ class Queries:
         if(print_bool):
             # Using tabulate to show the table in a nice way
             print("Data from table %s, tabulated:" % table_name)
-            print(tabulate(rows, headers=self.cursor.column_names))
+            print(tabulate(rows, headers=self.cursor.column_names, floatfmt=".0f"))
         return rows
 
     # the space [lat,lon,alt] where the plane [lat,lon] is [latitude,longitude], and alt is altitude.
@@ -240,43 +240,23 @@ class Queries:
         print("Total distance: " + f'{distance:.1f}' + "km")
 
     def task11(self):
-        # query = """
-        # SELECT Activity.user_id, Trackpoint.activity_id, Trackpoint.altitude
-        # FROM Activity, Trackpoint
-        # WHERE Trackpoint.altitude != -777
-        # ORDER BY Activity.user_id
-        # """
         query = """
-        SELECT Activity.user_id, difference_purged.activity_id, difference_purged.diff
-        FROM Activity, (SELECT activity_id, diff
-            FROM (SELECT activity_id, altitude, last_altitude, (altitude-last_altitude) AS diff
-                FROM (SELECT activity_id, altitude, LAG(altitude) OVER (PARTITION BY activity_id ORDER BY id) AS last_altitude
-                    FROM Trackpoint
-                    WHERE activity_id = 1 AND altitude != -777) AS altitudes
-                ) AS difference  
-            WHERE diff > 0) AS difference_purged   
+        SELECT summed.id AS user_id, SUM(summed.sum_diff) AS total_meters_gained
+        FROM (SELECT Activity.user_id AS id, difference_purged.activity_id, SUM(difference_purged.diff) AS sum_diff
+            FROM Activity RIGHT JOIN (SELECT activity_id, diff
+                FROM (SELECT activity_id, altitude, last_altitude, (altitude-last_altitude) AS diff
+                    FROM (SELECT activity_id, altitude, LAG(altitude) OVER (PARTITION BY activity_id ORDER BY id) AS last_altitude
+                        FROM Trackpoint
+                        WHERE altitude != -777) AS altitudes
+                    ) AS difference  
+                WHERE diff > 0) AS difference_purged 
+            ON Activity.id = difference_purged.activity_id  
+            GROUP BY difference_purged.activity_id) AS summed
+        GROUP BY user_id
+        ORDER BY total_meters_gained DESC
+        LIMIT 20
         """
-        # print(query)
-        rows = self.fetch_data(query, "Activity AND Trackpoint")
-        # prev_altitude = 0
-        # altitudes = {}
-        # for row in tqdm(rows):
-        #     user_id = row[0]
-        #     activity_id = row[1]
-        #     if prev_altitude == 0:
-        #         prev_altitude = row[2], activity_id
-        #     altitude = row[2], activity_id
-
-        #     if altitude[0] > prev_altitude[0]:
-        #         if altitude[1] == prev_altitude[1]:
-        #             altitudes[user_id] += altitude[0] - prev_altitude[0]
-
-        #     prev_altitude = row[2], activity_id
-
-        # # dict(sorted(altitudes.items(), key=lambda item: item[1]))
-        # res = dict(sorted(altitudes.items(), key = itemgetter(1), reverse = True)[:20])
-        # print(tabulate(res, ["user_id", "total_meters_gained"]))
-            
+        self.fetch_data(query, "Activity AND Trackpoint")         
 
     def task12(self):
         query = """
