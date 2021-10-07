@@ -3,7 +3,7 @@ from tabulate import tabulate
 import math
 
 class Queries:
-
+    
     def __init__(self):
         self.connection = DbConnector()
         self.db_connection = self.connection.db_connection
@@ -154,7 +154,7 @@ class Queries:
 
         for a in activityOverlap:
           relevantTrackpoints = self.fetch_data(queryRelevantOverlap % (a.start_date_time, a.end_date_time) , "Trackpoints")
-          if ()
+          
 
 
         #for t1 in trackpointsWhereActivityOverlap:
