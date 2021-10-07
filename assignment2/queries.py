@@ -280,33 +280,40 @@ class Queries:
 
     def task12(self):
         query = """
-        SELECT activity_id, maxdiff, user_id
+        SELECT user, total_invalid as 'total invalid'
         FROM (
-            SELECT activity_id, MAX(diff) AS 'maxdiff'
+            SELECT user_id AS user, COUNT(*) AS 'total_invalid'
             FROM (
-                SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, date_time, date_time) AS 'diff'
+                SELECT activity_id, MAX(diff) AS 'maxdiff'
                 FROM (
-                    SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time FROM Trackpoint
-                    ) AS times
-                ) AS time_diff
-            GROUP BY activity_id
-            ) AS Max_diff
-        JOIN Activity on Activity.id = Max_diff.activity_id
+                    SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(MINUTE, last_date_time, date_time) AS 'diff'
+                    FROM (
+                        SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id) AS last_date_time FROM Trackpoint
+                        ) AS times
+                    ) AS time_diff
+                GROUP BY activity_id
+                ) AS Max_diff
+            LEFT JOIN Activity on Activity.id = Max_diff.activity_id
+            WHERE maxdiff > 300
+            GROUP BY user_id
+        ) AS invalids
+        ORDER BY total_invalid DESC
+        LIMIT 1
         """
 
-        query = """
-        SELECT activity_id, MAX(diff) AS 'maxdiff'
-        FROM (
-            SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, date_time, date_time) AS 'diff'
-            FROM (
-                SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time FROM Trackpoint
-                ) AS times
-            ) AS time_diff
-
-        WHERE activity_id < 30
-        GROUP BY activity_id
-        """
-        self.fetch_data(query,"Trackpoint")
+        # RIGHT JOIN Activity on Activity.id = Max_diff.activity_id
+        # query = """
+        # SELECT activity_id, MIN(diff) AS 'maxdiff'
+        # FROM (
+        #     SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, last_date_time, date_time) AS 'diff'
+        #     FROM (
+        #         SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time FROM Trackpoint
+        #         ) AS times
+        #     ) AS time_diff
+        # GROUP BY activity_id
+        # """
+        rows = self.fetch_data(query,"Trackpoint")
+        print(len(rows))
 
     def tasks(self):
         return self.query_tasks
