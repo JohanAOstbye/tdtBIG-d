@@ -146,7 +146,7 @@ class Queries:
         """
 
         foundCloseUser = False
-        usersCloseToOthers = []
+        usersCloseToOthers = [] 
 
         for a in allActivitiesThatOverlapInTime:
           allTrackpointsInActivity = self.fetch_data(queryAllTrackpointsInActivity % a[1], "Trackpoint")
