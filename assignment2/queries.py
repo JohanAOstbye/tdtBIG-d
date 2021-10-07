@@ -86,10 +86,10 @@ class Queries:
 
     def task2(self):
         query = """
-            SELECT COUNT(*) as NumberOfActivities, user_id
-            FROM Activity
-            GROUP BY (user_id)
-            SELECT AVG(NumberOfActivities), MAX(NumberOfActivities), Min(NumberOfActivities);
+            SELECT MAX(NumberOfActivities) AS maximum, MIN(NumberOfActivities) AS minimum, AVG(NumberOfActivities) AS average
+            FROM (SELECT COUNT(*) as NumberOfActivities, user_id
+                FROM Activity
+                GROUP BY user_id) AS num
             """
         self.fetch_data(query, "Activity")
 
