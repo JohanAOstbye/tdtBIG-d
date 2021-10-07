@@ -195,6 +195,7 @@ class Queries:
         FROM Activity
         GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
         ORDER BY ant DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        LIMIT 1
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
         # ORDER BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
