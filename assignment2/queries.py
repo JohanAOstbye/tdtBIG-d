@@ -196,7 +196,7 @@ class Queries:
         SELECT EXTRACT(month FROM start_date_time) "Month", EXTRACT(year FROM start_date_time) "Year", count(*) AS 'amount'
         FROM Activity
         GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
-        ORDER BY amount DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
+        ORDER BY amount DESC, EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
         LIMIT 1
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
@@ -209,7 +209,8 @@ class Queries:
         FROM Activity
         WHERE EXTRACT(month FROM start_date_time) = 11 AND EXTRACT(year FROM start_date_time) = 2008
         GROUP BY user_id
-        ORDER BY amount DESC, user_id;
+        ORDER BY amount DESC, user_id
+        LIMIT 2
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
         # ORDER BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time);
