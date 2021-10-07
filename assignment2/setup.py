@@ -3,9 +3,8 @@ from tabulate import tabulate
 import os
 from tqdm import tqdm
 
-
 class dbProgram:
-
+    
     def __init__(self):
         self.connection = DbConnector()
         self.db_connection = self.connection.db_connection
@@ -20,22 +19,24 @@ class dbProgram:
         self.cursor.execute(query % (table_name, table_fields))
         self.db_connection.commit()
 
-    def insert_data(self, table_name, table_data, table_columns=""):
+    def insert_data(self, table_name, table_data, table_columns = ""):
         # inserts rows of data
         print("Inserting into %s" % table_name)
         for row in tqdm(table_data):
             query = "INSERT INTO %s%s VALUES (%s)"
-            self.cursor.execute(
-                query % (table_name, (" (" + table_columns + ")"), row))
+            self.cursor.execute(query % (table_name, (" (" + table_columns + ")"), row))
         self.db_connection.commit()
 
-    def fetch_data(self, query, table_name):
-        self.cursor.execute(query)
-        rows = self.cursor.fetchall()
-        # Using tabulate to show the table in a nice way
-        print("Data from table %s, tabulated:" % table_name)
-        print(tabulate(rows, headers=self.cursor.column_names))
-        return rows
+    # def fetch_data(self, table_name):
+    #     query = "SELECT * FROM %s"
+    #     self.cursor.execute(query % table_name)
+    #     rows = self.cursor.fetchall()
+    #     print("Data from table %s, raw format:" % table_name)
+    #     print(rows)
+    #     # Using tabulate to show the table in a nice way
+    #     print("Data from table %s, tabulated:" % table_name)
+    #     print(tabulate(rows, headers=self.cursor.column_names))
+    #     return rows
 
     def drop_table(self, table_name):
         print("Dropping table %s..." % table_name)
@@ -43,13 +44,13 @@ class dbProgram:
         self.cursor.execute(query % table_name)
 
     def show_tables(self):
-        # shows all tablenames
+        #shows all tablenames
         self.cursor.execute("SHOW TABLES")
         rows = self.cursor.fetchall()
         print(tabulate(rows, headers=self.cursor.column_names))
-
+    
     def show_table(self, table_name):
-        # shows a table with values
+        #shows a table with values
         print("Table %s" % table_name)
         query = "SELECT * FROM %s"
         self.cursor.execute(query % table_name)
@@ -57,7 +58,7 @@ class dbProgram:
         print(tabulate(rows, headers=self.cursor.column_names))
 
     def create_tables(self):
-        # sets up database
+        #sets up database
         self.create_table(
             "User",
             """
@@ -88,29 +89,29 @@ class dbProgram:
             FOREIGN KEY (activity_id) REFERENCES Activity(id)
             """
         )
-
+    
     def drop_tables(self):
-        # flushes db
+        #flushes db
         self.drop_table("Trackpoint")
         self.drop_table("Activity")
         self.drop_table("User")
 
     def insert_users(self):
-        self.labeled_users = []  # list of user with labels on their activities
+        self.labeled_users = [] #list of user with labels on their activities
         with open("dataset/labeled_ids.txt") as file:
             for user in file:
-                user = user[:-1]  # remove /n
-                # storing everything in memory!
-                self.labeled_users.append(user)
-
+                user = user[:-1] #remove /n
+                self.labeled_users.append(user) #storing everything in memory!
+        
         query_data = []
 
-        for num in range(182):  # formates users into querydata
+        for num in range(182): # formates users into querydata
             user = ("%03d" % (num,))
             has_label = "0"
             if user in self.labeled_users:
                 has_label = "1"
             query_data.append("'" + user + "', " + has_label)
+            
 
         self.insert_data(
             "User",
@@ -122,59 +123,52 @@ class dbProgram:
         activities = []
         trackpoints = []
 
-        for (root, dirs, files) in tqdm(os.walk("dataset/Data")):
-            if root == "Data":  # skips first iteration
+        for (root,dirs,files) in tqdm(os.walk("dataset/Data")):
+            if root ==  "Data": # skips first iteration
                 continue
 
             if "Trajectory" in root:
-                # sets the user id depending on folder
-                user_id = root.split("/")[2]
+                user_id = root.split("/")[2] # sets the user id depending on folder
 
                 for activity_file in files:
                     activity_file_url = root + "/" + activity_file
-                    # if activity has more than 2500 trackpoints -> skip
-                    if(self.file_len(activity_file_url) >= 2506):
+                    if(self.file_len(activity_file_url) >= 2506): # if activity has more than 2500 trackpoints -> skip
                         continue
 
                     # Trackpoints
                     activity_trackpoints = []
                     with open(activity_file_url) as activity:
                         for x in range(6):
-                            # skips the first 6 lines of the .plt file
-                            next(activity)
+                            next(activity) # skips the first 6 lines of the .plt file
 
                         for trackpoint in activity:
                             lat = trackpoint.split(",")[0]
                             lon = trackpoint.split(",")[1]
                             altitude = trackpoint.split(",")[3]
-                            date_time = trackpoint.split(
-                                ",")[5] + " " + trackpoint.split(",")[6][:-1]
-                            trackpoint = "%s, %s, %s, %s, '%s'" % (
-                                activity_id, lat, lon, altitude, date_time)
+                            date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6][:-1]
+                            trackpoint = "%s, %s, %s, %s, '%s'" % (activity_id, lat, lon, altitude, date_time)
                             activity_trackpoints.append(trackpoint)
-
+                    
                     trackpoints.extend(activity_trackpoints)
 
-                    # Activity
+                    #Activity                    
                     transportation_mode = "NULL"
                     start_time = activity_trackpoints[0].split(",")[4]
                     end_time = activity_trackpoints[-1].split(",")[4]
-                    if user_id in self.labeled_users:  # root is user with labels
+                    if user_id in self.labeled_users: # root is user with labels
                         with open(root[:-10] + "labels.txt") as file:
                             next(file)
                             for label in file:
-                                label_start = label.split()[0].replace(
-                                    "/", "-") + " " + label.split()[1]
-                                label_end = label.split()[2].replace(
-                                    "/", "-") + " " + label.split()[3]
+                                label_start = label.split()[0].replace("/", "-") + " " + label.split()[1]
+                                label_end = label.split()[2].replace("/", "-") + " " + label.split()[3]
                                 if label_start == start_time and label_end == end_time:
                                     transportation_mode = label.split()[4]
+                                
 
-                    activity = "%s, '%s', '%s',%s,%s" % (
-                        activity_id, user_id, transportation_mode, start_time, end_time)
+                    activity = "%s, '%s', '%s',%s,%s" % (activity_id, user_id, transportation_mode, start_time, end_time)
                     activity_id += 1
                     activities.append(activity)
-
+        
         print(activities[0])
         print(trackpoints[0])
         self.insert_data(
@@ -198,7 +192,7 @@ def main():
     program = None
     try:
         program = dbProgram()
-
+        
         program.create_tables()
         program.insert_users()
 
@@ -211,11 +205,11 @@ def main():
     #     print("ERROR: Failed to use database:", e)
     finally:
         if program:
-            # program.drop_tables()
+            program.drop_tables()
             program.connection.close_connection()
 
 
 if __name__ == '__main__':
     main()
 
-# YYYY-MM-DD HH:MM:SS
+#YYYY-MM-DD HH:MM:SS

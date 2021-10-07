@@ -4,7 +4,6 @@ import math
 from operator import itemgetter
 from tqdm import tqdm
 
-
 class Queries:
 
     def __init__(self):
@@ -42,7 +41,7 @@ class Queries:
     def isCloseInDistance(self, lat1, lat2, lon1, lon2, alt1, alt2):
         return self.calculateDistance3D(lat1, lat2, lon1, lon2, alt1, alt2) <= 100
 
-    def calculateTime(self, datetime1, datetime2):
+    def calculateTimeBetween(datetime1, datetime2):
         date1 = datetime1.split()[0]
         date2 = datetime2.split()[0]
         if date2 != date1:
@@ -124,10 +123,52 @@ class Queries:
         self.fetch_data(query, "Activity")
 
     def task6(self):
-        query = """
+        queryTrackpointsWhereActivityOverlap = """
+            SELECT trackpoint_id, activity_id, lat, long, altitude, date_time
+            FROM Trackpoint t1
+            WHERE EXISTS (
+              SELECT user_id, activity_id, start_date_time, end_date_time
+              FROM Activity a1
+              INNER JOIN Activity a2
+                ON (a2.start_date_time >= a1.start_date_time AND a2.start_date_time =< a1.end_date_time) 
+                OR (a2.start_date_time >= a1.start_date_time AND a2.end_date_time =< a1.end_date_time) 
+                OR (a2.end_date_time =< a1.end_date_time AND a2.end_date_time >= a1.start_date_time) 
+              WHERE t1.activity_id == a1.activity_id)
+        """
+
+        queryActivityOverlap = """
+            SELECT user_id, activity_id, start_date_time, end_date_time
+            FROM Activity a1
+            INNER JOIN Activity a2
+              ON (a2.start_date_time >= a1.start_date_time AND a2.start_date_time =< a1.end_date_time) 
+              OR (a2.start_date_time >= a1.start_date_time AND a2.end_date_time =< a1.end_date_time) 
+              OR (a2.end_date_time =< a1.end_date_time AND a2.end_date_time >= a1.start_date_time) 
+            ORDER BY start_date_time ASC
+        """
+
+        activityOverlap = self.fetch_data(queryActivityOverlap, "Activity")
+
+        queryRelevantOverlap = """
+            SELECT lat, long, altitude, date_time
+            FROM Trackpoint t
+            WHERE date_time >= %s AND date_time <= %s
+        """
+
+        for a in activityOverlap:
+          relevantTrackpoints = self.fetch_data(queryRelevantOverlap % (a.start_date_time, a.end_date_time) , "Trackpoints")
+          if ()
+
+
+        #for t1 in trackpointsWhereActivityOverlap:
+        #  for t2 in trackpointsWhereActivityOverlap:
+        #    if self.isCloseInTime(self.calculateTimeBetween(t1.date_time, t2.date_time)) and self.isCloseInDistance(self.calculateDistance3D(t1.lat,t2.lat,t1.long,t2.long,t1.altitude,t2.altitude) and t1 != t2):
+        #      trackpointsCloseToOthers.append(t1)
         
         """
-        print(query)
+        INNER JOIN Trackpoint t2
+              ON (isCloseInTime(calculateTimeBetween(t1.date_time, t2.date_time)))
+              AND (isCloseInDistance(calculateDistance3D(t1.lat,t2.lat,t1.long,t2.long,t1.altitude,t2.altitude)))
+        """
 
     def task7(self):
         query = """
@@ -213,6 +254,7 @@ class Queries:
             
         )
         ORDER BY user_id
+            
         """
         # print(query)
         rows = self.fetch_data(query, "Activity AND Trackpoint", False)
