@@ -1,6 +1,8 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
 import math
+from operator import itemgetter
+from tqdm import tqdm
 
 class Queries:
     
@@ -238,10 +240,43 @@ class Queries:
         print("Total distance: " + f'{distance:.1f}' + "km")
 
     def task11(self):
+        # query = """
+        # SELECT Activity.user_id, Trackpoint.activity_id, Trackpoint.altitude
+        # FROM Activity, Trackpoint
+        # WHERE Trackpoint.altitude != -777
+        # ORDER BY Activity.user_id
+        # """
         query = """
-            
+        SELECT Activity.user_id, difference_purged.activity_id, difference_purged.diff
+        FROM Activity, (SELECT activity_id, diff
+            FROM (SELECT activity_id, altitude, last_altitude, (altitude-last_altitude) AS diff
+                FROM (SELECT activity_id, altitude, LAG(altitude) OVER (PARTITION BY activity_id ORDER BY id) AS last_altitude
+                    FROM Trackpoint
+                    WHERE activity_id = 1 AND altitude != -777) AS altitudes
+                ) AS difference  
+            WHERE diff > 0) AS difference_purged   
         """
-        print(query)
+        # print(query)
+        rows = self.fetch_data(query, "Activity AND Trackpoint")
+        # prev_altitude = 0
+        # altitudes = {}
+        # for row in tqdm(rows):
+        #     user_id = row[0]
+        #     activity_id = row[1]
+        #     if prev_altitude == 0:
+        #         prev_altitude = row[2], activity_id
+        #     altitude = row[2], activity_id
+
+        #     if altitude[0] > prev_altitude[0]:
+        #         if altitude[1] == prev_altitude[1]:
+        #             altitudes[user_id] += altitude[0] - prev_altitude[0]
+
+        #     prev_altitude = row[2], activity_id
+
+        # # dict(sorted(altitudes.items(), key=lambda item: item[1]))
+        # res = dict(sorted(altitudes.items(), key = itemgetter(1), reverse = True)[:20])
+        # print(tabulate(res, ["user_id", "total_meters_gained"]))
+            
 
     def task12(self):
         query = """
