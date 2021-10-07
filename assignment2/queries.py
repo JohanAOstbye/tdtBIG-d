@@ -205,11 +205,13 @@ class Queries:
 
         # b)
         query = """
-        SELECT user_id, count(*) AS 'amount'
-        FROM Activity
-        WHERE EXTRACT(month FROM start_date_time) = 11 AND EXTRACT(year FROM start_date_time) = 2008
+        SELECT user_id, SUM(hours) as 'hours', COUNT(*) AS 'Activities'
+        FROM (SELECT user_id, (TIMESTAMPDIFF(SECOND, start_date_time, end_date_time)/3600) AS 'hours'
+            FROM Activity
+            WHERE month(start_date_time) = 11 AND year(start_date_time) = 2008
+        ) AS all_hours
         GROUP BY user_id
-        ORDER BY amount DESC, user_id
+        ORDER BY hours DESC, user_id
         LIMIT 2
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
