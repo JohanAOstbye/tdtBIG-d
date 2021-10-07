@@ -247,17 +247,17 @@ class Queries:
         # ORDER BY Activity.user_id
         # """
         query = """
-        SELECT Activity.user_id as user_id, total_meters_gained 
-        FROM Activity, FROM (
-            SELECT Trackpoint.altitude
-            FROM Trackpoint
-            
-        )
-        ORDER BY user_id
-            
+        SELECT Activity.user_id, difference_purged.activity_id, difference_purged.diff
+        FROM Activity, (SELECT activity_id, diff
+            FROM (SELECT activity_id, altitude, last_altitude, (altitude-last_altitude) AS diff
+                FROM (SELECT activity_id, altitude, LAG(altitude) OVER (PARTITION BY activity_id ORDER BY id) AS last_altitude
+                    FROM Trackpoint
+                    WHERE activity_id = 1 AND altitude != -777) AS altitudes
+                ) AS difference  
+            WHERE diff > 0) AS difference_purged   
         """
         # print(query)
-        rows = self.fetch_data(query, "Activity AND Trackpoint", False)
+        rows = self.fetch_data(query, "Activity AND Trackpoint")
         # prev_altitude = 0
         # altitudes = {}
         # for row in tqdm(rows):
