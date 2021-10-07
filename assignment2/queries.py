@@ -214,7 +214,7 @@ class Queries:
         query = """
         SELECT Activity.id, Trackpoint.lat, Trackpoint.lon, Trackpoint.altitude
         FROM Trackpoint
-        INNER JOIN Activity ON Trackpoint.activity_id=Activity.id
+        JOIN Activity ON Trackpoint.activity_id=Activity.id
         WHERE EXTRACT(year FROM start_date_time) = 2008 AND user_id = 112
         """
         rows = self.fetch_data(query,"Tracpoint and Activity", False)
@@ -245,9 +245,12 @@ class Queries:
 
     def task12(self):
         query = """
-        
+        SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, date_time, last_date_time) AS 'diff'
+        FROM (SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time
+            FROM Trackpoint
+            WHERE activity_id = 1) AS times
         """
-        print(query)
+        self.fetch_data(query,"Trackpoint")
 
     def tasks(self):
         return self.query_tasks
