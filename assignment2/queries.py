@@ -245,10 +245,31 @@ class Queries:
 
     def task12(self):
         query = """
-        SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, date_time, last_date_time) AS 'diff'
-        FROM (SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time
-            FROM Trackpoint
-            WHERE activity_id = 1) AS times
+        SELECT activity_id, maxdiff, user_id
+        FROM (
+            SELECT activity_id, MAX(diff) AS 'maxdiff'
+            FROM (
+                SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, date_time, date_time) AS 'diff'
+                FROM (
+                    SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time FROM Trackpoint
+                    ) AS times
+                ) AS time_diff
+            GROUP BY activity_id
+            ) AS Max_diff
+        JOIN Activity on Activity.id = Max_diff.activity_id
+        """
+
+        query = """
+        SELECT activity_id, MAX(diff) AS 'maxdiff'
+        FROM (
+            SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, date_time, date_time) AS 'diff'
+            FROM (
+                SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time FROM Trackpoint
+                ) AS times
+            ) AS time_diff
+
+        WHERE activity_id < 30
+        GROUP BY activity_id
         """
         self.fetch_data(query,"Trackpoint")
 
