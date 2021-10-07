@@ -282,7 +282,6 @@ class Queries:
             GROUP BY user_id
         ) AS invalids
         ORDER BY total_invalid DESC
-        LIMIT 1
         """
 
         # RIGHT JOIN Activity on Activity.id = Max_diff.activity_id
