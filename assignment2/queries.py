@@ -211,7 +211,7 @@ class Queries:
             WHERE month(start_date_time) = 11 AND year(start_date_time) = 2008
         ) AS all_hours
         GROUP BY user_id
-        ORDER BY hours DESC, user_id
+        ORDER BY activities DESC, user_id
         LIMIT 2
         """
         # GROUP BY EXTRACT(year FROM start_date_time), EXTRACT(month FROM start_date_time)
