@@ -1,10 +1,12 @@
 from DbConnector import DbConnector
 from tabulate import tabulate
 import math
-from tqdm import tqdm 
+from operator import itemgetter
+from tqdm import tqdm
+from datetime import timedelta
 
 class Queries:
-
+    
     def __init__(self):
         self.connection = DbConnector()
         self.db_connection = self.connection.db_connection
@@ -30,7 +32,7 @@ class Queries:
         if(print_bool):
             # Using tabulate to show the table in a nice way
             print("Data from table %s, tabulated:" % table_name)
-            print(tabulate(rows, headers=self.cursor.column_names))
+            print(tabulate(rows, headers=self.cursor.column_names, floatfmt=".0f"))
         return rows
 
     # the space [lat,lon,alt] where the plane [lat,lon] is [latitude,longitude], and alt is altitude.
@@ -40,24 +42,31 @@ class Queries:
     def isCloseInDistance(self, lat1, lat2, lon1, lon2, alt1, alt2):
         return self.calculateDistance3D(lat1, lat2, lon1, lon2, alt1, alt2) <= 100
 
-    def calculateTimeBetween(datetime1, datetime2):
-        date1 = datetime1.split()[0]
-        date2 = datetime2.split()[0]
-        if date2 != date1:
-            return
+    def calculateTimeBetween(self, datetime1, datetime2):
+      """
+      print(datetime1)
+      print(datetime2)
 
-        time1 = datetime1.split()[1]
-        time2 = datetime2.split()[1]
+      date1 = datetime1.date
+      date2 = datetime2.date
+      
+      print(date1)
+      print(date2)
+      if date2 != date1: return 999
+      
+      hour1 = datetime1.hour
+      hour2 = datetime2.hour
+      min1 = datetime1.minute
+      min2 = datetime2.minute
+      sec1 = datetime1.second
+      sec2 = datetime2.second
 
-        seconds1 = time1.split(":")[0]*3600 + \
-            time1.split(":")[1] + time1.split(":")[0]
-        seconds2 = time2.split(":")[0]*3600 + \
-            time2.split(":")[1] + time2.split(":")[0]
-
-        return seconds2 - seconds1
+      seconds1 = hour1*3600 + min1*60 + sec1
+      seconds2 = hour2*3600 + min2*60 + sec2"""
+      return (datetime1 - datetime2).total_seconds()
 
     def isCloseInTime(self, time1, time2, seconds):
-        return self.calculateTime(time2, time1) <= seconds
+        return self.calculateTimeBetween(time2, time1) <= seconds
 
     def dateFromDateTime(dateTime):
         # YYYY-MM-DD HH:MM:SS becomes YYYY-MM-DD
@@ -85,10 +94,10 @@ class Queries:
 
     def task2(self):
         query = """
-            SELECT COUNT(*) as NumberOfActivities, user_id
-            FROM Activity
-            GROUP BY (user_id)
-            SELECT AVG(NumberOfActivities), MAX(NumberOfActivities), Min(NumberOfActivities);
+            SELECT MAX(NumberOfActivities) AS maximum, MIN(NumberOfActivities) AS minimum, AVG(NumberOfActivities) AS average
+            FROM (SELECT COUNT(*) as NumberOfActivities, user_id
+                FROM Activity
+                GROUP BY user_id) AS num
             """
         self.fetch_data(query, "Activity")
 
@@ -122,46 +131,44 @@ class Queries:
         self.fetch_data(query, "Activity")
 
     def task6(self):
-        queryActivityOverlap = """
-            SELECT a1.id, a1.user_id, a1.start_date_time, a1.end_date_time
-            FROM Activity a1
-            INNER JOIN Activity a2
-              ON (a2.start_date_time >= a1.start_date_time AND a2.start_date_time <= a1.end_date_time) 
-              OR (a2.start_date_time >= a1.start_date_time AND a2.end_date_time <= a1.end_date_time) 
-              OR (a2.end_date_time <= a1.end_date_time AND a2.end_date_time >= a1.start_date_time) 
+      query = """
+        SELECT DISTINCT
+            st.id,
+            a1.user_id,
+            a2.user_id
+        FROM
+            Trackpoint tp1,
+            Trackpoint tp2,
+            Activity a1,
+            Activity a2,
+            (SELECT
+                (@row_number:=@row_number + 1) AS id,
+                a1.id as act_id_1,
+                a2.id as act_id_2
+            FROM
+                Activity a1
+            INNER JOIN
+                Activity a2
+            ON
+                a1.id <> a2.id
+            WHERE   
+                (
+                a2.start_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute) OR
+                a2.end_date_time BETWEEN date_add(a1.start_date_time, interval -1 minute) AND date_add(a1.end_date_time, interval 1 minute)
+                ) AND
+                a1.user_id <> a2.user_id
+            GROUP BY
+                a1.id, a2.id) as st
+        WHERE
+            a1.id = tp1.activity_id AND
+            a2.id = tp2.activity_id AND
+            a1.user_id <> a2.user_id AND
+            tp1.activity_id = st.act_id_1 AND
+            tp2.activity_id = st.act_id_2 AND
+            SQRT(POWER((tp2.lat - tp1.lat),2) + POWER((tp2.lon - tp1.lon),2) + POWER((tp2.altitude - tp1.altitude),2)) < 0.001 AND
+            (TIMESTAMPDIFF(SECOND, tp1.date_time, tp2.date_time) < 60 AND TIMESTAMPDIFF(SECOND, tp1.date_time, tp2.date_time) > -60);
         """
-
-        allActivitiesThatOverlapInTime = self.fetch_data(queryActivityOverlap, "Activity")
-
-        queryAllTrackpointsInActivity = """
-            SELECT t.activity_id, t.lat, t.lon, t.altitude, t.date_time
-            FROM Trackpoint t
-            WHERE t.activity_id = %d
-        """
-
-        queryRelevantTrackpointsInOverlap = """
-            SELECT t.lat, t.long, t.altitude, t.date_time
-            FROM Trackpoint t
-            WHERE t.date_time >= %s AND t.date_time <= %s
-        """
-
-        foundCloseUser = False
-        usersCloseToOthers = []
-
-        print("Starting iterating through allActivitiesThatOverlapInTime")
-        for a in tqdm(allActivitiesThatOverlapInTime):
-          allTrackpointsInActivity = self.fetch_data(queryAllTrackpointsInActivity % a[0], "Trackpoint")
-          relevantTrackpointsInOthers = self.fetch_data(queryRelevantTrackpointsInOverlap % (a[2], a[3]) , "Trackpoint")
-
-          for at in allTrackpointsInActivity:
-            if foundCloseUser: break # ?or a[1] in usersCloseToOthers?
-            for rt in relevantTrackpointsInOthers:
-              if foundCloseUser: break
-              if self.isCloseInDistance(self.calculateDistance3D(at[1],rt[0],at[2],rt[1],at[3],rt[2])) and self.isCloseInTime(self.calculateTimeBetween(at[4],rt[3])):
-                usersCloseToOthers.append(a[1])
-                foundCloseUser = True
-
-        print(usersCloseToOthers)
+      self.fetch_data(query, "Activity")
 
     def task7(self):
         query = """
@@ -209,7 +216,7 @@ class Queries:
         query = """
         SELECT Activity.id, Trackpoint.lat, Trackpoint.lon, Trackpoint.altitude
         FROM Trackpoint
-        INNER JOIN Activity ON Trackpoint.activity_id=Activity.id
+        JOIN Activity ON Trackpoint.activity_id=Activity.id
         WHERE EXTRACT(year FROM start_date_time) = 2008 AND user_id = 112
         """
         rows = self.fetch_data(query,"Tracpoint and Activity", False)
@@ -234,15 +241,59 @@ class Queries:
 
     def task11(self):
         query = """
-
+        SELECT summed.id AS user_id, SUM(summed.sum_diff) AS total_meters_gained
+        FROM (SELECT Activity.user_id AS id, difference_purged.activity_id, SUM(difference_purged.diff) AS sum_diff
+            FROM Activity RIGHT JOIN (SELECT activity_id, diff
+                FROM (SELECT activity_id, altitude, last_altitude, (altitude-last_altitude) AS diff
+                    FROM (SELECT activity_id, altitude, LAG(altitude) OVER (PARTITION BY activity_id ORDER BY id) AS last_altitude
+                        FROM Trackpoint
+                        WHERE altitude != -777) AS altitudes
+                    ) AS difference  
+                WHERE diff > 0) AS difference_purged 
+            ON Activity.id = difference_purged.activity_id  
+            GROUP BY difference_purged.activity_id) AS summed
+        GROUP BY user_id
+        ORDER BY total_meters_gained DESC
+        LIMIT 20
         """
-        print(query)
+        self.fetch_data(query, "Activity AND Trackpoint")         
 
     def task12(self):
         query = """
-        
+        SELECT user, total_invalid as 'total invalid'
+        FROM (
+            SELECT user_id AS user, COUNT(*) AS 'total_invalid'
+            FROM (
+                SELECT activity_id, MAX(diff) AS 'maxdiff'
+                FROM (
+                    SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(MINUTE, last_date_time, date_time) AS 'diff'
+                    FROM (
+                        SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id) AS last_date_time FROM Trackpoint
+                        ) AS times
+                    ) AS time_diff
+                GROUP BY activity_id
+                ) AS Max_diff
+            LEFT JOIN Activity on Activity.id = Max_diff.activity_id
+            WHERE maxdiff > 300
+            GROUP BY user_id
+        ) AS invalids
+        ORDER BY total_invalid DESC
+        LIMIT 1
         """
-        print(query)
+
+        # RIGHT JOIN Activity on Activity.id = Max_diff.activity_id
+        # query = """
+        # SELECT activity_id, MIN(diff) AS 'maxdiff'
+        # FROM (
+        #     SELECT activity_id, date_time, last_date_time, TIMESTAMPDIFF(SECOND, last_date_time, date_time) AS 'diff'
+        #     FROM (
+        #         SELECT activity_id, date_time, LAG(date_time) OVER (PARTITION BY activity_id ORDER BY id) AS last_date_time FROM Trackpoint
+        #         ) AS times
+        #     ) AS time_diff
+        # GROUP BY activity_id
+        # """
+        rows = self.fetch_data(query,"Trackpoint")
+        print(len(rows))
 
     def tasks(self):
         return self.query_tasks
@@ -253,6 +304,8 @@ def main():
     program = None
     try:
         program = Queries()
+
+        #print(program.calculateTimeBetween('2007-08-02 15:46:14', '2007-08-02 15:46:00'))
         tasks = Queries.tasks(program)
 
         task = "start"
@@ -280,3 +333,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+

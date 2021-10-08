@@ -19,24 +19,39 @@ class dbProgram:
         self.cursor.execute(query % (table_name, table_fields))
         self.db_connection.commit()
 
+
+    # def format_query(self, row, table_name, table_columns):
+    #     return (table_name, (" (" + table_columns + ")"), row)
+
+
     def insert_data(self, table_name, table_data, table_columns = ""):
         # inserts rows of data
-        print("Inserting into %s" % table_name)
-        for row in tqdm(table_data):
-            query = "INSERT INTO %s%s VALUES (%s)"
-            self.cursor.execute(query % (table_name, (" (" + table_columns + ")"), row))
-        self.db_connection.commit()
 
-    # def fetch_data(self, table_name):
-    #     query = "SELECT * FROM %s"
-    #     self.cursor.execute(query % table_name)
-    #     rows = self.cursor.fetchall()
-    #     print("Data from table %s, raw format:" % table_name)
-    #     print(rows)
-    #     # Using tabulate to show the table in a nice way
-    #     print("Data from table %s, tabulated:" % table_name)
-    #     print(tabulate(rows, headers=self.cursor.column_names))
-    #     return rows
+        # Assembly of query
+        query = "INSERT INTO %s %s VALUES (" % (table_name, table_columns)
+        for c in table_data[0]:
+            query += "%s, "
+        query = query[:-2] + ")"
+
+        # Yield successive n-sized
+        # chunks from l.
+        def divide_chunks(l, n):
+            
+            # looping till length l
+            for i in range(0, len(l), n): 
+                yield l[i:i + n]
+        
+        # How many elements each
+        # list should have
+        n = 100000
+        
+        data_list = list(divide_chunks(table_data, n))
+
+        print("Inserting into %s" % table_name)
+        for data in tqdm(data_list):
+            self.cursor.executemany(query, data)
+            self.db_connection.commit()
+        print("Insert done")
 
     def drop_table(self, table_name):
         print("Dropping table %s..." % table_name)
@@ -107,21 +122,59 @@ class dbProgram:
 
         for num in range(182): # formates users into querydata
             user = ("%03d" % (num,))
-            has_label = "0"
+            has_label = 0
             if user in self.labeled_users:
-                has_label = "1"
-            query_data.append("'" + user + "', " + has_label)
+                has_label = 1
+            query_data.append((user , has_label))
             
 
         self.insert_data(
             "User",
             query_data
         )
+    
+    def insert_trackpoints(self, activity_id, activity_file):
+        activity_trackpoints = []
+        with open(activity_file) as activity:
+            for x in range(6):
+                next(activity) # skips the first 6 lines of the .plt file
 
-    def insert_activities_and_trackpoints(self):
+            for trackpoint in activity:
+                lat = trackpoint.split(",")[0]
+                lon = trackpoint.split(",")[1]
+                altitude = trackpoint.split(",")[3]
+                date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6][:-1]
+                trackpoint = (activity_id, lat, lon, altitude, date_time)
+                activity_trackpoints.append(trackpoint)
+
+        self.trackpoints.extend(activity_trackpoints)
+        return activity_trackpoints
+
+    def insert_activities(self, user_id, activity_id, root, activity_trackpoints):
+        transportation_mode = "NULL"
+        start_time = activity_trackpoints[0][4]
+        end_time = activity_trackpoints[-1][4]
+        if user_id in self.labeled_users: # root is user with labels
+            with open(root[:-10] + "labels.txt") as file:
+                next(file)
+                for label in file:
+                    label_start = label.split()[0].replace("/", "-") + " " + label.split()[1]
+                    label_end = label.split()[2].replace("/", "-") + " " + label.split()[3]
+                    if label_start == start_time and label_end == end_time:
+                        transportation_mode = label.split()[4]
+                    
+
+        activity = (activity_id, user_id, transportation_mode, start_time, end_time)
+        
+        activity_id += 1
+        self.activities.append(activity)
+
+    def insert_all_data(self):
+        self.insert_users
+
         activity_id = 0
-        activities = []
-        trackpoints = []
+        self.activities = []
+        self.trackpoints = []
 
         for (root,dirs,files) in tqdm(os.walk("dataset/Data")):
             if root ==  "Data": # skips first iteration
@@ -136,49 +189,20 @@ class dbProgram:
                         continue
 
                     # Trackpoints
-                    activity_trackpoints = []
-                    with open(activity_file_url) as activity:
-                        for x in range(6):
-                            next(activity) # skips the first 6 lines of the .plt file
+                    activity_trackpoints = self.insert_trackpoints(activity_id, activity_file_url)
 
-                        for trackpoint in activity:
-                            lat = trackpoint.split(",")[0]
-                            lon = trackpoint.split(",")[1]
-                            altitude = trackpoint.split(",")[3]
-                            date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6][:-1]
-                            trackpoint = "%s, %s, %s, %s, '%s'" % (activity_id, lat, lon, altitude, date_time)
-                            activity_trackpoints.append(trackpoint)
-                    
-                    trackpoints.extend(activity_trackpoints)
-
-                    #Activity                    
-                    transportation_mode = "NULL"
-                    start_time = activity_trackpoints[0].split(",")[4]
-                    end_time = activity_trackpoints[-1].split(",")[4]
-                    if user_id in self.labeled_users: # root is user with labels
-                        with open(root[:-10] + "labels.txt") as file:
-                            next(file)
-                            for label in file:
-                                label_start = label.split()[0].replace("/", "-") + " " + label.split()[1]
-                                label_end = label.split()[2].replace("/", "-") + " " + label.split()[3]
-                                if label_start == start_time and label_end == end_time:
-                                    transportation_mode = label.split()[4]
-                                
-
-                    activity = "%s, '%s', '%s',%s,%s" % (activity_id, user_id, transportation_mode, start_time, end_time)
+                    #Activity          
+                    self.insert_activities(user_id, activity_id, root, activity_trackpoints)          
                     activity_id += 1
-                    activities.append(activity)
         
-        print(activities[0])
-        print(trackpoints[0])
         self.insert_data(
             "Activity",
-            activities
+            self.activities
         )
         self.insert_data(
             "Trackpoint",
-            trackpoints,
-            "activity_id, lat, lon, altitude, date_time"
+            self.trackpoints,
+            "(activity_id, lat, lon, altitude, date_time) "
         )
 
     def file_len(self, file):
@@ -196,7 +220,7 @@ def main():
         program.create_tables()
         program.insert_users()
 
-        program.insert_activities_and_trackpoints()
+        program.insert_all_data()
         # program.show_table("User")
         # program.show_table("Activity")
         # program.show_table("Trackpoint")
@@ -205,11 +229,9 @@ def main():
     #     print("ERROR: Failed to use database:", e)
     finally:
         if program:
-            program.drop_tables()
+            # program.drop_tables()
             program.connection.close_connection()
 
 
 if __name__ == '__main__':
     main()
-
-#YYYY-MM-DD HH:MM:SS
