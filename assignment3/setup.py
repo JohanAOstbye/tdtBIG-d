@@ -84,11 +84,11 @@ class dbProgram:
     
     def insert_documents(self, docs, collection_name):
         collection = self.db[collection_name]
-        print("Inserting into %s" % collection_name)
-        collection.insert_many(docs)
-        print("Insert done")
+        # print("Inserting into %s" % collection_name)
+        # collection.insert_many(docs)
+        # print("Insert done")
 
-        return
+        # return
         # Yield successive n-sized arrays from array
         def divide_chunks(array, n):
             
@@ -97,7 +97,7 @@ class dbProgram:
                 yield array[i:i + n]
         
         # How many elements each list should have
-        n = 20000
+        n = 500000
         
         data_list = list(divide_chunks(docs, n))
 
@@ -118,7 +118,7 @@ class dbProgram:
                 lon = (float)(trackpoint.split(",")[1])
                 altitude = (float)(trackpoint.split(",")[3])
                 date_time = trackpoint.split(",")[5] + " " + trackpoint.split(",")[6][:-1]
-                trackpoint_doc = self.create_trackpoint(id, activity_id, lat, lon, altitude, date_time)
+                trackpoint_doc = self.create_trackpoint(self.tp_id, activity_id, lat, lon, altitude, date_time)
                 trackpoint_docs.append(trackpoint_doc)
                 self.tp_id += 1
         
@@ -181,6 +181,7 @@ def main():
     program = None
     try:
         program = dbProgram()
+        program.drop_all()
         program.build_database()
         program.show_collection()
     # except Exception as e:
@@ -188,7 +189,6 @@ def main():
     # this is the worst error handling as it doesnt give and info of where the error occured:( caused alot of frustration last assignment...
     finally:
         if program:
-            program.drop_all()
             program.connection.close_connection()
 
 
