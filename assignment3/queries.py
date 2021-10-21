@@ -88,7 +88,19 @@ class Queries:
         pass
 
     def task5(self):
-        pass
+        collection = self.fetch_collection("activities")
+        
+        docs = collection.aggregate([
+            { 
+                "$group": { 
+                    "_id": { "user_id": "$user_id", "transportation_mode": "$transportation_mode", "start_date_time": "$start_date_time", "end_date_time": "$end_date_time" }, 
+                    "uniqueIds": { "$addToSet": "$_id" },
+                    "count": { "$sum": 1 } 
+                }
+            }, 
+            { "$match": { "count": { "$gt": 1 } } }
+        ])
+        self.print_documents(docs)
 
     def task6(self):
         pass
