@@ -32,8 +32,11 @@ class Queries:
         return self.db[collection_name]
 
     def print_documents(self, docs):
-        for doc in docs:
-            pprint(doc)
+        if(hasattr(docs, '__iter__')):
+            for doc in docs:
+                pprint(doc)
+        else:
+            pprint(docs)
 
     # the space [lat,lon,alt] where the plane [lat,lon] is [latitude,longitude], and alt is altitude.
     # def calculateDistance3D(self, lat1, lat2, lon1, lon2, alt1, alt2):
@@ -74,18 +77,102 @@ class Queries:
 
     def task1(self):
         collection = self.fetch_collection("activities")
-        query = {}
-        docs = collection.find(query)  # .sort().limit()
+        docs = collection.aggregate([{
+            '$group': {'_id': "$user_id"}
+        }, {
+            '$count': 'users'
+        }])
+        print("users:")
+        self.print_documents(docs)
+
+        docs = collection.find().count()
+        print("activities:")
+        self.print_documents(docs)
+
+        collection = self.fetch_collection("trackpoints")
+        docs = collection.find().count()
+        print("trackpoints:")
         self.print_documents(docs)
 
     def task2(self):
-        pass
+        collection = self.fetch_collection("activities")
+        docs = collection.aggregate([{
+            '$group': {
+                '_id': "$user_id",
+                'activities': {
+                    '$sum': 1
+                }
+            }
+        }, {
+            '$group': {
+                '_id': None,
+                'min': {
+                    '$min': '$activities',
+                },
+                'max': {
+                    '$max': '$activities',
+                },
+                'avg': {
+                    '$avg': '$activities',
+                }
+            }
+        }])
+        print("min max and average number of activities:")
+        self.print_documents(docs)
 
     def task3(self):
-        pass
+        collection = self.fetch_collection("activities")
+        docs = collection.aggregate([{
+            '$group': {
+                '_id': "$user_id",
+                'activities': {
+                    '$sum': 1
+                }
+            }
+        }, {
+            '$sort': {'activities': -1}
+        },
+            {
+            "$limit": 10
+        }])
+        print("most number of activities:")
+        self.print_documents(docs)
 
     def task4(self):
-        pass
+        collection = self.fetch_collection("activities")
+        docs = collection.aggregate([{
+            '$setField': {
+                'field': 'diff',
+                'input': '$$ROOT',
+                'value': {'$cmp': [
+                    {
+                        '$dateTrunc': {
+                            'date': '$start_date_time',
+                            'unit': 'day'
+                        }
+                    },
+                    {
+                        '$dateTrunc': {
+                            'date': '$end_date_time',
+                            'unit': 'day'
+                        }
+                    }
+                ]}
+            }
+        },
+            {
+            '$match': {
+                '$diff': {'$ne': 0}
+            }
+
+        },
+            {
+            '$group': {
+                '_id': "$user_id"
+            }
+        }])
+        print("most number of activities:")
+        self.print_documents(docs)
 
     def task5(self):
         collection = self.fetch_collection("activities")
