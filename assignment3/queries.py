@@ -98,7 +98,11 @@ class Queries:
                     "count": { "$sum": 1 } 
                 }
             }, 
-            { "$match": { "count": { "$gt": 1 } } }
+            { 
+                "$match": {
+                    "count": { "$gt": 1 } 
+                } 
+            }
         ])
         self.print_documents(docs)
 
@@ -121,7 +125,84 @@ class Queries:
         pass
 
     def task11(self):
-        pass
+        # collection = self.fetch_collection("trackpoints")
+        # docs = collection.aggregate([
+        #     {
+        #         "$group": {
+        #             "_id": 0
+        #         }
+        #     },
+        #     {
+        #         "$lookup": {
+        #             "from": "activities",
+        #             "let": {},
+        #             "pipeline": [
+        #                 { "$group": {
+        #                     "_id": {"user_id": "$user_id"}
+        #                 }}
+        #             ],
+        #             "as": "activities"
+        #         }
+        #     },
+        #     {
+        #         "$lookup": {
+        #             "from": "trackpoints",
+        #             "let": {},
+        #             "pipeline": [
+        #                 # {
+        #                 #     "$unwind": {"$pos"}
+        #                 # },
+        #                 { 
+        #                     "$group": {
+        #                         "_id": {"activity_id": "$activity_id", "altitude": "$pos.altitude"}
+        #                     }
+        #                 }
+        #             ],
+        #             "as": "trackpoints"
+        #         }
+        #     },
+        #         {
+        #         "$unwind": {
+        #             "path" : '$activities',
+        #         }
+        #     },
+        #     {
+        #         "$unwind": {
+        #             "path" : '$trackpoints',
+        #         }
+        #     },
+        #     {
+        #         "$project": {
+        #             "user_id": "$activities.user_id",
+        #             "activity_id": "$trackpoints.activity_id",
+        #             "altitude": "$trackpoints.altitude"
+        #         }
+        #     },
+        #     { "$limit": 5 }
+        # ])
+        # self.print_documents(docs)
+        # print(type(docs))
+
+        # sums = {}
+        # prev_altitude = None
+        # prev_activity = None
+        # for doc in docs:
+        #     if doc.altitude == -777:
+        #         continue
+
+        #     if prev_altitude == None and prev_activity == None:
+        #         prev_altitude = doc.altitude
+        #         prev_activity = doc.activity
+
+        #     if doc.altitude > prev_altitude and doc.activity == prev_activity:
+        #         sums[doc.user_id] += doc.altitude - prev_altitude
+
+        # print(sums) 
+
+        activities = self.fetch_collection("activities")
+        trackpoints = self.fetch_collection("trackpoints")
+
+        
 
     def task12(self):
         pass
