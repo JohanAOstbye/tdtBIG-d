@@ -1,11 +1,14 @@
 from pprint import pprint
+
+from pymongo import collection
 from DbConnector import DbConnector
 import math
 from tqdm import tqdm
 from datetime import timedelta
 
+
 class Queries:
-    
+
     def __init__(self):
         self.connection = DbConnector()
         self.client = self.connection.client
@@ -24,11 +27,12 @@ class Queries:
             11: self.task11,
             12: self.task12,
         }
-    
-    def fetch_documents(self, collection_name):
-        collection = self.db[collection_name]
-        documents = collection.find({})
-        for doc in documents: 
+
+    def fetch_collection(self, collection_name):
+        return self.db[collection_name]
+
+    def print_documents(self, docs):
+        for doc in docs:
             pprint(doc)
 
     # the space [lat,lon,alt] where the plane [lat,lon] is [latitude,longitude], and alt is altitude.
@@ -45,11 +49,11 @@ class Queries:
 
     #   date1 = datetime1.date
     #   date2 = datetime2.date
-      
+
     #   print(date1)
     #   print(date2)
     #   if date2 != date1: return 999
-      
+
     #   hour1 = datetime1.hour
     #   hour2 = datetime2.hour
     #   min1 = datetime1.minute
@@ -69,8 +73,10 @@ class Queries:
     #     return dateTime.split()[0]
 
     def task1(self):
-        pass
-
+        collection = self.fetch_collection("activities")
+        query = {}
+        docs = collection.find(query)  # .sort().limit()
+        self.print_documents(docs)
 
     def task2(self):
         pass
@@ -85,7 +91,7 @@ class Queries:
         pass
 
     def task6(self):
-      pass
+        pass
 
     def task7(self):
         pass
@@ -103,14 +109,13 @@ class Queries:
         pass
 
     def task11(self):
-        pass        
+        pass
 
     def task12(self):
         pass
 
     def tasks(self):
         return self.query_tasks
-        
 
 
 def main():
@@ -131,8 +136,6 @@ def main():
             else:
                 print("task %s not valid: " % task)
 
-            
-
     # except Exception as e:
     #     print("ERROR: Failed to use database:", e)
     finally:
@@ -142,5 +145,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
