@@ -188,7 +188,7 @@ class Queries:
             '$count': 'users'
         }
         ])
-        print("most number of activities:")
+        print("number of users:")
         self.print_documents(docs)
 
     def task5(self):
