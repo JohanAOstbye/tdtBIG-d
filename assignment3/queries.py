@@ -1,8 +1,6 @@
-<<<<<<< HEAD
 import datetime
-=======
 import collections
->>>>>>> a50f41c10f027dddafc0925e8ca34100350865d0
+from os import close
 from pprint import pprint
 from re import match
 
@@ -11,8 +9,8 @@ from pymongo.message import query
 from DbConnector import DbConnector
 import math
 from tqdm import tqdm
-from datetime import datetime, timedelta
-from collections import Counter
+from datetime import datetime
+from collections import Counter, UserString
 from haversine import haversine
 
 
@@ -46,39 +44,6 @@ class Queries:
                 pprint(doc)
         else:
             pprint(docs)
-
-    # the space [lat,lon,alt] where the plane [lat,lon] is [latitude,longitude], and alt is altitude.
-    # def calculateDistance3D(self, lat1, lat2, lon1, lon2, alt1, alt2):
-    #     return math.sqrt(math.pow((lat2 - lat1),2) + math.pow((lon2 - lon1),2) + math.pow((alt2 - alt1),2))
-
-    # def isCloseInDistance(self, lat1, lat2, lon1, lon2, alt1, alt2):
-    #     return self.calculateDistance3D(lat1, lat2, lon1, lon2, alt1, alt2) <= 100
-
-    # def calculateTimeBetween(self, datetime1, datetime2):
-    #   """
-    #   print(datetime1)
-    #   print(datetime2)
-
-    #   date1 = datetime1.date
-    #   date2 = datetime2.date
-
-    #   print(date1)
-    #   print(date2)
-    #   if date2 != date1: return 999
-
-    #   hour1 = datetime1.hour
-    #   hour2 = datetime2.hour
-    #   min1 = datetime1.minute
-    #   min2 = datetime2.minute
-    #   sec1 = datetime1.second
-    #   sec2 = datetime2.second
-
-    #   seconds1 = hour1*3600 + min1*60 + sec1
-    #   seconds2 = hour2*3600 + min2*60 + sec2"""
-    #   return (datetime1 - datetime2).total_seconds()
-
-    # def isCloseInTime(self, time1, time2, seconds):
-    #     return self.calculateTimeBetween(time2, time1) <= seconds
 
     def dateFromDateTime(self, dateTime):
         # YYYY-MM-DD HH:MM:SS becomes YYYY-MM-DD
@@ -221,21 +186,31 @@ class Queries:
         # minute (60 seconds) and space (100 meters). (This is a simplification of the
         # “unsolvable” problem given i exercise 2).
 
-        collection = self.fetch_collection("trackpoints")
+        tcollection = self.fetch_collection("trackpoints")
+        acollection = self.fetch_collection("activities")
 
-        trackpoints = collection.find({})
+        trackpoints = tcollection.find({})
+        format = "%Y-%m-%d %H:%M:%S"
         lat = 39.97548
         lon = 116.33031
-        time = '2008-08-24 15:38:00'
+        time = datetime.strptime('2008-08-24 15:38:00', format)
 
-        users = {}
+        users = []
 
         for trackpoint in trackpoints:
             t_lat = trackpoint["pos"]["latitude"]
             t_lon = trackpoint["pos"]["longitude"]
-            t_time = trackpoint["date_time"]
+            t_time = datetime.strptime(trackpoint["date_time"], format)
 
-        
+            close_space = haversine((lat, lon), (t_lat, t_lon)) <= 0.1
+            close_time = abs((time - t_time).total_seconds()) <= 60
+
+            if close_space and close_time:
+                activity = acollection.find({"_id": trackpoint["activity_id"]})
+                user = activity["user_id"]
+                users.append(user)
+
+        self.print_documents(users)
 
     def task7(self):
         # Find all users that have never taken a taxi.
