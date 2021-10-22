@@ -1,3 +1,4 @@
+import datetime
 from pprint import pprint
 from re import match
 
@@ -8,6 +9,7 @@ import math
 from tqdm import tqdm
 from datetime import timedelta
 from collections import Counter
+from haversine import haversine
 
 
 class Queries:
@@ -215,13 +217,19 @@ class Queries:
         # minute (60 seconds) and space (100 meters). (This is a simplification of the
         # “unsolvable” problem given i exercise 2).
 
-        collection = self.fetch_collection("activities")
+        collection = self.fetch_collection("trackpoints")
 
-        docs = collection.aggregate([
-            {}
-        ])
-        self.print_documents(docs)
-        pass
+        trackpoints = collection.find({})
+        lat = 39.97548
+        lon = 116.33031
+        time = '2008-08-24 15:38:00'
+
+        users = {}
+
+        for trackpoint in trackpoints:
+            t_lat = trackpoint["pos"]["latitude"]
+            t_lon = trackpoint["pos"]["longitude"]
+            t_time = trackpoint["date_time"]
 
     def task7(self):
         # Find all users that have never taken a taxi.
@@ -305,7 +313,42 @@ class Queries:
 
     def task10(self):
         # Find the total distance (in km) walked in 2008, by user with id=112.
-        pass
+
+        def check_if_year_is_2008(activity):
+            return datetime.datetime.strptime(activity["start_date_time"], '%Y-%m-%d %H:%M:%S').year == 2008
+
+        total_km = 0
+        activity_collection = self.fetch_collection("activities")
+
+        user_112_activities = activity_collection.find({"user_id": "112"})
+        user_112_activities_list = list(user_112_activities)
+        # self.print_documents(user_112_activities_list)
+
+        activities_in_2008 = list(
+            filter(check_if_year_is_2008, user_112_activities_list))
+        trackpoints_in_2008 = {}
+
+        print("fetching trackpoints")
+        #i = 0
+        for activity in tqdm(activities_in_2008):
+            # if i == 1:    # TESTING ON ONE ACTIVITY BECAUSE IT TAKES 23 MINUTES IF WE ARE TO RUN IT
+            #    break     # FOR EVERY TRACKPOINT IN EVERY ACTIVITY OF THIS USER IN 2008
+            trackpoints_in_2008[activity["_id"]] = list(self.fetch_collection(
+                "trackpoints").find({"activity_id": activity["_id"]}))
+            #i += 1
+
+        print("summing length")
+        for activity_id, trackpoints in trackpoints_in_2008.items():
+            print(trackpoints[i])
+            for i in range(len(trackpoints) - 1):
+                lat1 = float(trackpoints[i]["pos"]["latitude"])
+                lon1 = float(trackpoints[i]["pos"]["longitude"])
+                pos1 = (lat1, lon1)
+                lat2 = float(trackpoints[i+1]["pos"]["latitude"])
+                lon2 = float(trackpoints[i+1]["pos"]["longitude"])
+                pos2 = (lat2, lon2)
+                total_km += haversine(pos1, pos2)
+        print("User 112 has walked a total distance of: "+str(total_km) + " km")
 
     def task11(self):
         # collection = self.fetch_collection("trackpoints")
