@@ -134,8 +134,7 @@ class Queries:
             }
         }, {
             '$sort': {'activities': -1}
-        },
-            {
+        }, {
             "$limit": 10
         }])
         print("most number of activities:")
@@ -390,7 +389,55 @@ class Queries:
 
     def task12(self):
         # Find all users who have invalid activities, and the number of invalid activities per user
-        pass
+        collection = self.fetch_collection("trackpoints")
+
+        docs = collection.aggregate([{
+            '$setWindowFields': {
+                'partitionBy': "$activity_id",
+                'sortBy': {'_id': 1},
+                'output': {
+                    'last_date': {
+                        '$shift': {
+                            'output': "$date_time",
+                            'by': -1,
+                            'default': None
+                        }
+                    }
+                }
+            }
+        }, {
+            '$project': {
+                '_id': '_id',
+                'time_diff': {
+                    '$dateDiff': {
+                        'startDate': {
+                            '$dateFromString': {
+                                'dateString': '$date_time'
+                            }
+                        },
+                        'endDate': {
+                            '$dateFromString': {
+                                'dateString': '$last_date'
+                            }
+                        },
+                        'unit': 'second'
+                    }
+                },
+                'activity_id': 1
+            }
+
+        }, {
+            "$limit": 2
+        }, {
+            '$lookup': {
+                'from': 'activities',
+                'localField': 'activity_id',
+                'foreignField': '_id',
+                'as': 'activity'
+            }
+        }
+        ], allowDiskUse=True)
+        self.print_documents(docs)
 
     def tasks(self):
         return self.query_tasks
