@@ -500,9 +500,6 @@ class Queries:
                 'actitities': -1
             }
         }
-            # , {
-            #     '$limit': 2
-            # }
         ], allowDiskUse=True)
         self.print_documents(docs)
 
