@@ -216,13 +216,21 @@ class Queries:
         # minute (60 seconds) and space (100 meters). (This is a simplification of the
         # “unsolvable” problem given i exercise 2).
 
-        collection = self.fetch_collection("activities")
+        collection = self.fetch_collection("trackpoints")
 
-        docs = collection.aggregate([
-            {}
-        ])
-        self.print_documents(docs)
-        pass
+        trackpoints = collection.find({})
+        lat = 39.97548
+        lon = 116.33031
+        time = '2008-08-24 15:38:00'
+
+        users = {}
+
+        for trackpoint in trackpoints:
+            t_lat = trackpoint["pos"]["latitude"]
+            t_lon = trackpoint["pos"]["longitude"]
+            t_time = trackpoint["date_time"]
+
+        
 
     def task7(self):
         # Find all users that have never taken a taxi.
