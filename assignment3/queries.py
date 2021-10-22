@@ -1,3 +1,4 @@
+import collections
 from pprint import pprint
 from re import match
 
@@ -6,7 +7,7 @@ from pymongo.message import query
 from DbConnector import DbConnector
 import math
 from tqdm import tqdm
-from datetime import timedelta
+from datetime import datetime, timedelta
 from collections import Counter
 
 
@@ -74,9 +75,9 @@ class Queries:
     # def isCloseInTime(self, time1, time2, seconds):
     #     return self.calculateTimeBetween(time2, time1) <= seconds
 
-    # def dateFromDateTime(dateTime):
-    #     # YYYY-MM-DD HH:MM:SS becomes YYYY-MM-DD
-    #     return dateTime.split()[0]
+    def dateFromDateTime(self, dateTime):
+        # YYYY-MM-DD HH:MM:SS becomes YYYY-MM-DD
+        return dateTime.split()[0]
 
     def task1(self):
         collection = self.fetch_collection("activities")
@@ -232,39 +233,87 @@ class Queries:
     def task9(self):
         # a)
         # Find the year and month with the most activities.
+        collection = self.fetch_collection("activities")
 
+        activities = collection.find({})
+
+        dates = {}
+        for activity in activities:
+            date = self.dateFromDateTime(activity["start_date_time"])
+            date = date[:-3]
+            
+            try:
+                dates[date] += 1
+            except:
+                dates[date] = 1
+        
+        most_activities_date = Counter(dates).most_common(1)
+        print("Year-month, activities")
+        pprint(most_activities_date)
+            
         # b)
         # Which user had the most activities this year and month, and how many
         # recorded hours do they have? Do they have more hours recorded than the user
         # with the second most activities?
+        supreme_date = most_activities_date[0][0]
+        activities = collection.find({})
+        users_hours = {}
+        users_activities = {}
 
-        pass
+        for activity in activities:
+            start_date_time = activity["start_date_time"]
+            end_date_time = activity["end_date_time"]
+            start_date = self.dateFromDateTime(start_date_time)
+            end_date = self.dateFromDateTime(end_date_time)
+            date = start_date[:-3]
 
+            if date == supreme_date:
+                user = activity["user_id"]
+                format = "%Y-%m-%d %H:%M:%S"
+                start_date_time = datetime.strptime(start_date_time, format)
+                end_date_time = datetime.strptime(end_date_time, format)
+                hours = end_date_time.hour - start_date_time.hour
+                try:
+                    users_hours[user] += hours
+                    users_activities[user] += 1
+                except:
+                    users_hours[user] = hours
+                    users_activities[user] = 1
+                
+        top_users_activities = Counter(users_activities).most_common(2)
+        top_users = {}
+        for user, activities in top_users_activities:
+            top_users[user] = (activities, users_hours[user])
+        
+        print("\nuser: (activities, hours)")
+        pprint(top_users)
+        
     def task10(self):
         # Find the total distance (in km) walked in 2008, by user with id=112.
         pass
 
     def task11(self):
-        # collection = self.fetch_collection("trackpoints")
-        # docs = collection.aggregate([
-        #     {
-        #         "$unwind": "$pos"
-        #     },
-        #     {
-        #         "$group": {
-        #             "_id": {
-        #                 "activity_id": "$activity_id",
-        #                 "altitude": "$pos.altitude",
-        #             }
-        #         }
-        #     },
-        #     {
-        #         "$match": {
-        #             "pos.altitude": {"$ne": -777}
-        #         }
-        #     },           
-        # ], allowDiskUse=True)
-        # self.print_documents(docs)
+        collection = self.fetch_collection("trackpoints")
+        docs = collection.aggregate([
+            {
+                "$unwind": "$pos"
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "activity_id": "$activity_id",
+                        "altitude": "$pos.altitude",
+
+                    }
+                }
+            },
+            {
+                "$match": {
+                    "pos.altitude": {"$ne": -777}
+                }
+            },           
+        ], allowDiskUse=True)
+        self.print_documents(docs)
 
         # sums = {}
         # prev_altitude = None
@@ -282,8 +331,8 @@ class Queries:
 
         # print(sums)
 
-        trackpoint_collection = self.fetch_collection("trackpoints")
-        activity_collection = self.fetch_collection("activities")
+        # trackpoint_collection = self.fetch_collection("trackpoints")
+        # activity_collection = self.fetch_collection("activities")
         # trackpoints = trackpoint_collection.find({})
 
         # meters_gained = {}
@@ -317,12 +366,12 @@ class Queries:
         # top_users = Counter(meters_gained).most_common(20)
         # pprint(top_users)
 
-        for idx in range(trackpoint_collection.count()):
-            if idx == 0:
-                continue
+        # for idx in range(trackpoint_collection.count()):
+        #     if idx == 0:
+        #         continue
 
-            test = trackpoint_collection.find({ "id": { "$lte": idx } }, {"id": 1, "pos.altitude": 1 }).sort({"_id": -1}).limit(2);
-            print(test)
+        #     test = trackpoint_collection.find({ "id": { "$lte": idx } }, {"id": 1, "pos.altitude": 1 }).sort({"_id": -1}).limit(2);
+        #     print(test)
 
 
     def task12(self):
