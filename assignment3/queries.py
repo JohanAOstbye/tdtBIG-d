@@ -212,21 +212,36 @@ class Queries:
         self.print_documents(docs)
 
     def task6(self):
+        # An infected person has been at position (lat, lon) (39.97548, 116.33031) at
+        # time ‘2008-08-24 15:38:00’. Find the user_id(s) which have been close to this
+        # person in time and space (pandemic tracking). Close is defined as the same
+        # minute (60 seconds) and space (100 meters). (This is a simplification of the
+        # “unsolvable” problem given i exercise 2).
         pass
 
     def task7(self):
+        # Find all users that have never taken a taxi.
         pass
 
     def task8(self):
+        # Find all types of transportation modes and count how many distinct users that
+        # have used the different transportation modes. Do not count the rows where the
+        # transportation mode is null .
         pass
 
     def task9(self):
         # a)
+        # Find the year and month with the most activities.
 
         # b)
+        # Which user had the most activities this year and month, and how many
+        # recorded hours do they have? Do they have more hours recorded than the user
+        # with the second most activities?
+
         pass
 
     def task10(self):
+        # Find the total distance (in km) walked in 2008, by user with id=112.
         pass
 
     def task11(self):
@@ -319,6 +334,7 @@ class Queries:
         # pprint(top_users)
 
     def task12(self):
+        # Find all users who have invalid activities, and the number of invalid activities per user
         pass
 
     def tasks(self):
