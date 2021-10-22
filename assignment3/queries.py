@@ -1,10 +1,13 @@
 from pprint import pprint
+from re import match
 
 from pymongo import collection
+from pymongo.message import query
 from DbConnector import DbConnector
 import math
 from tqdm import tqdm
 from datetime import timedelta
+from collections import Counter
 
 
 class Queries:
@@ -200,7 +203,11 @@ class Queries:
                     "count": {"$sum": 1}
                 }
             },
-            {"$match": {"count": {"$gt": 1}}}
+            {
+                "$match": {
+                    "count": {"$gt": 1}
+                }
+            }
         ])
         self.print_documents(docs)
 
@@ -223,7 +230,93 @@ class Queries:
         pass
 
     def task11(self):
-        pass
+        collection = self.fetch_collection("trackpoints")
+        docs = collection.aggregate([
+            {
+                "$unwind": "$pos"
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "activity_id": "$activity_id",
+                        "altitude": "$pos.altitude"
+                    }
+                }
+            },
+            {
+                "$match": {
+                    "altitude": {"$ne": -777}
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "activity_id": "$activity_id",
+                        "prev_altitud": {"$last": "$pos.altitude"},
+                        "diff": {"$cmp": [
+                            "altitude", "prev_altitude"
+                        ]}
+                    }
+                }
+            },
+            {
+                "$match": {
+                    "diff": {"$gte": 0}
+                }
+            },
+            {
+                "$project": {
+                    "_id": "activity_id",
+                    "meters": {"$sum": "diff"}
+                }
+            }
+
+        ], allowDiskUse=True)
+        self.print_documents(docs)
+
+        # sums = {}
+        # prev_altitude = None
+        # prev_activity = None
+        # for doc in docs:
+        #     if doc.altitude == -777:
+        #         continue
+
+        #     if prev_altitude == None and prev_activity == None:
+        #         prev_altitude = doc.altitude
+        #         prev_activity = doc.activity
+
+        #     if doc.altitude > prev_altitude and doc.activity == prev_activity:
+        #         sums[doc.user_id] += doc.altitude - prev_altitude
+
+        # print(sums)
+
+        # trackpoint_collection = self.fetch_collection("trackpoints")
+        # activity_collection = self.fetch_collection("activities")
+        # trackpoints = trackpoint_collection.find({})
+
+        # meters_gained = {}
+        # prev_activity = None
+        # prev_altitude = None
+        # for trackpoint in tqdm(trackpoints, total=9676756):
+        #     altitude = trackpoint["pos"]["altitude"]
+        #     if altitude == -777:
+        #         continue
+
+        #     if prev_altitude == None and prev_activity == None:
+        #         prev_activity = trackpoint["activity_id"]
+        #         prev_altitude = altitude
+
+        #     activity_id = trackpoint["activity_id"]
+        #     activity = activity_collection.find({}).__getitem__(activity_id)
+        #     user_id = activity["user_id"]
+        #     if altitude > prev_altitude and activity_id == prev_activity:
+        #         if user_id in meters_gained:
+        #             meters_gained[user_id] += altitude - prev_altitude
+        #         else:
+        #             meters_gained[user_id] = altitude - prev_altitude
+
+        # top_users = Counter(meters_gained).most_common(20)
+        # pprint(top_users)
 
     def task12(self):
         pass
