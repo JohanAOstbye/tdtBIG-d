@@ -185,9 +185,7 @@ class Queries:
                 '_id': "$user_id"
             }
         }, {
-            '$sort': {
-                '_id': 1
-            }
+            '$count': 'users'
         }
         ])
         print("most number of activities:")
@@ -218,11 +216,52 @@ class Queries:
         # person in time and space (pandemic tracking). Close is defined as the same
         # minute (60 seconds) and space (100 meters). (This is a simplification of the
         # “unsolvable” problem given i exercise 2).
+
+        collection = self.fetch_collection("activities")
+
+        docs = collection.aggregate([
+            {}
+        ])
+        self.print_documents(docs)
         pass
 
     def task7(self):
         # Find all users that have never taken a taxi.
-        pass
+
+        collection = self.fetch_collection("activities")
+
+        docs = collection.aggregate([
+            {
+                '$match': {
+                    'transportation_mode': {'$ne': None}
+                }
+            }, {
+                '$group': {
+                    '_id': "$user_id"
+                }
+            }
+        ])
+
+        users_with = []
+        for doc in docs:
+            users_with.append(doc['_id'])
+
+        docs = collection.aggregate([
+            {
+                '$group': {'_id': "$user_id"}
+            }, {
+                '$match': {
+                    '_id': {
+                        '$nin': users_with
+                    }
+                }
+            }, {
+                '$sort': {
+                    '_id': 1
+                }
+            }
+        ])
+        self.print_documents(docs)
 
     def task8(self):
         # Find all types of transportation modes and count how many distinct users that
