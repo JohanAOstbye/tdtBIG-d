@@ -141,51 +141,66 @@ class Queries:
     def task4(self):
         collection = self.fetch_collection("activities")
         docs = collection.aggregate([{
-            '$setField': {
-                'field': 'diff',
-                'input': '$$ROOT',
-                'value': {'$cmp': [
-                    {
-                        '$dateTrunc': {
-                            'date': '$start_date_time',
-                            'unit': 'day'
-                        }
-                    },
-                    {
-                        '$dateTrunc': {
-                            'date': '$end_date_time',
-                            'unit': 'day'
-                        }
+            '$project': {
+                '_id': 1,
+                'user_id': 1,
+                'end_date': {
+                    '$dateTrunc': {
+                        'date': {
+                            '$dateFromString': {
+                                'dateString': '$end_date_time'
+                            }
+                        },
+                        'unit': 'day'
                     }
-                ]}
+                },
+                'start_date': {
+                    '$dateTrunc': {
+                        'date': {
+                            '$dateFromString': {
+                                'dateString': '$start_date_time'
+                            }
+                        },
+                        'unit': 'day'
+                    }
+                },
             }
         },
             {
             '$match': {
-                '$diff': {'$ne': 0}
+                '$expr': {
+                    '$ne': [
+                        '$start_date',
+                        '$end_date'
+                    ]
+                }
             }
 
-        },
-            {
+        }, {
             '$group': {
                 '_id': "$user_id"
             }
-        }])
+        }, {
+            '$sort': {
+                '_id': 1
+            }
+        }
+        ])
         print("most number of activities:")
         self.print_documents(docs)
 
     def task5(self):
         collection = self.fetch_collection("activities")
-        
+
         docs = collection.aggregate([
-            { 
-                "$group": { 
-                    "_id": { "user_id": "$user_id", "transportation_mode": "$transportation_mode", "start_date_time": "$start_date_time", "end_date_time": "$end_date_time" }, 
-                    "uniqueIds": { "$addToSet": "$_id" },
-                    "count": { "$sum": 1 } 
+            {
+                "$group": {
+                    "_id": {"user_id": "$user_id", "transportation_mode": "$transportation_mode", "start_date_time": "$start_date_time", "end_date_time": "$end_date_time"},
+                    "uniqueIds": {"$addToSet": "$_id"},
+                    "count": {"$sum": 1}
                 }
-            }, 
-            { "$match": { "count": { "$gt": 1 } } }
+            },
+            {"$match": {"count": {"$gt": 1}}}
         ])
         self.print_documents(docs)
 
