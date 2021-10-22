@@ -266,7 +266,32 @@ class Queries:
         # Find all types of transportation modes and count how many distinct users that
         # have used the different transportation modes. Do not count the rows where the
         # transportation mode is null .
-        pass
+        collection = self.fetch_collection("activities")
+
+        docs = collection.aggregate([
+            {
+                '$match': {
+                    'transportation_mode': {
+                        '$ne': None
+                    }
+                }
+            }, {
+                '$group': {
+                    '_id': '$transportation_mode',
+                    'users': {
+                        '$addToSet': '$user_id'
+                    }
+                }
+            }, {
+                '$project': {
+                    'trasnportation mode': '$_id',
+                    'distinct users': {
+                        '$size': '$users'
+                    }
+                }
+            }
+        ])
+        self.print_documents(docs)
 
     def task9(self):
         # a)
@@ -301,7 +326,7 @@ class Queries:
         #         "$match": {
         #             "pos.altitude": {"$ne": -777}
         #         }
-        #     },           
+        #     },
         # ], allowDiskUse=True)
         # self.print_documents(docs)
 
@@ -351,8 +376,7 @@ class Queries:
 
         #     prev_altitude = altitude
         #     prev_activity = activity_id
-           
-            
+
         # top_users = Counter(meters_gained).most_common(20)
         # pprint(top_users)
 
@@ -360,9 +384,9 @@ class Queries:
             if idx == 0:
                 continue
 
-            test = trackpoint_collection.find({ "id": { "$lte": idx } }, {"id": 1, "pos.altitude": 1 }).sort({"_id": -1}).limit(2);
+            test = trackpoint_collection.find(
+                {"id": {"$lte": idx}}, {"id": 1, "pos.altitude": 1}).sort({"_id": -1}).limit(2)
             print(test)
-
 
     def task12(self):
         # Find all users who have invalid activities, and the number of invalid activities per user
@@ -382,7 +406,7 @@ def main():
         while(True):
             task = input("Run task: ")
 
-            if(task == "exit" or task == ""):
+            if(task == "exit" or task == "" or task == "^[[A"):
                 break
 
             if task.isdigit() and int(task) in tasks:
