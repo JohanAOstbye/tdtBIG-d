@@ -332,85 +332,100 @@ class Queries:
         pass
 
     def task11(self):
-        collection = self.fetch_collection("trackpoints")
-        docs = collection.aggregate([
-            {
-                "$unwind": "$pos"
-            },
-            {
-                "$group": {
-                    "_id": {
-                        "activity_id": "$activity_id",
-                        "altitude": "$pos.altitude",
-
-                    }
-                }
-            },
-            {
-                "$match": {
-                    "pos.altitude": {"$ne": -777}
-                }
-            },           
-        ], allowDiskUse=True)
-        self.print_documents(docs)
-
-        # sums = {}
-        # prev_altitude = None
-        # prev_activity = None
-        # for doc in docs:
-        #     if doc.altitude == -777:
-        #         continue
-
-        #     if prev_altitude == None and prev_activity == None:
-        #         prev_altitude = doc.altitude
-        #         prev_activity = doc.activity
-
-        #     if doc.altitude > prev_altitude and doc.activity == prev_activity:
-        #         sums[doc.user_id] += doc.altitude - prev_altitude
-
-        # print(sums)
-
+        """Below is task 11 attempt with aggregation"""
+        # collection = self.fetch_collection("trackpoints")
+        # docs = collection.aggregate([
+        #     {
+        #         "$unwind": "$pos"
+        #     },
+        #     {
+        #         "$setWindowFields": {
+        #             "partitionBy": "$activity_id",
+        #             "sortBy": { "_id": 1 },
+        #             "output": {
+        #                 "prev_altitude": {
+        #                 "$shift": {
+        #                     "output": "$pos.altitude",
+        #                     "by": -1,
+        #                     "default": "Not available"
+        #                 }
+        #                 }
+        #             }
+        #         }
+        #     },
+        #     {
+        #         "$group": {
+        #             "_id": {
+        #                 "activity_id": "$activity_id",
+        #                 "altitude": "$pos.altitude",
+        #                 "diff": { "$cmp": [
+        #                     "altitude", "prev_altitude"
+        #                 ]},
+        #                 "meters": {"$sum": "$diff"}
+        #             }
+        #         }
+        #     },
+        #     {
+        #         "$match": {
+        #             "pos.altitude": {"$ne": -777}
+        #         }
+        #     },
+        #     {
+        #         "$match": {
+        #             "diff": {"$eq": 1}
+        #         }
+        #     }         
+        # ], allowDiskUse=True)
+        # # self.print_documents(docs)
         # trackpoint_collection = self.fetch_collection("trackpoints")
-        # activity_collection = self.fetch_collection("activities")
-        # trackpoints = trackpoint_collection.find({})
+        # sums = {}
+        # for doc in docs:
+        #     activity = trackpoint_collection.find({ "activity_id": doc["activity_id"] })
+        #     user = activity["user_id"]
+        #     try:
+        #         sums[user] += int(doc["meters"])
+        #     except:
+        #         sums[user] = int(doc["meters"])
 
-        # meters_gained = {}
-        # prev_activity = None
-        # prev_altitude = None
-        # for trackpoint in tqdm(trackpoints, total=9676756):
+        # pprint(sums)
 
-        #     altitude = trackpoint["pos"]["altitude"]
-        #     activity_id = trackpoint["activity_id"]
 
-        #     if altitude == -777:
-        #         continue
+        """Below is python attempt"""
+        trackpoint_collection = self.fetch_collection("trackpoints")
+        activity_collection = self.fetch_collection("activities")
+        trackpoints = trackpoint_collection.find({})
 
-        #     if prev_altitude == None and prev_activity == None:
-        #         prev_activity = activity_id
-        #         prev_altitude = altitude
+        meters_gained = {}
+        prev_activity = None
+        prev_altitude = None
+        for trackpoint in tqdm(trackpoints, total=9676756):
 
-        #     activity = activity_collection.find({}).__getitem__(activity_id)
-        #     user_id = activity["user_id"]
+            altitude = trackpoint["pos"]["altitude"]
+            activity_id = trackpoint["activity_id"]
 
-        #     if altitude > prev_altitude and activity_id == prev_activity:
-        #         try:
-        #             meters_gained[user_id] += altitude - prev_altitude
-        #         except:
-        #             meters_gained[user_id] = altitude - prev_altitude
+            if altitude == -777:
+                continue
 
-        #     prev_altitude = altitude
-        #     prev_activity = activity_id
+            if prev_altitude == None and prev_activity == None:
+                prev_activity = activity_id
+                prev_altitude = altitude
+
+            activity = activity_collection.find({}).__getitem__(activity_id)
+            user_id = activity["user_id"]
+
+            if altitude > prev_altitude and activity_id == prev_activity:
+                try:
+                    meters_gained[user_id] += altitude - prev_altitude
+                except:
+                    meters_gained[user_id] = altitude - prev_altitude
+
+            prev_altitude = altitude
+            prev_activity = activity_id
            
             
-        # top_users = Counter(meters_gained).most_common(20)
-        # pprint(top_users)
+        top_users = Counter(meters_gained).most_common(20)
+        pprint(top_users)
 
-        # for idx in range(trackpoint_collection.count()):
-        #     if idx == 0:
-        #         continue
-
-        #     test = trackpoint_collection.find({ "id": { "$lte": idx } }, {"id": 1, "pos.altitude": 1 }).sort({"_id": -1}).limit(2);
-        #     print(test)
 
 
     def task12(self):
